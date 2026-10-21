@@ -1,0 +1,72 @@
+{title: Toujours debout}
+{subtitle: exemple de test}
+{artist: Kenata}
+{key: Am}
+{tempo: 92}
+{time: 4/4}
+{meta: tags rock, kenata}
+{comment: Intro au piano seul, nuance p ; tout le monde entre au 2e passage.}
+
+{start_of_abc: Intro piano (la mineur)}
+X:1
+T:Intro piano
+M:4/4
+L:1/8
+Q:1/4=76
+K:Am
+%%score {1 | 2}
+V:1 clef=treble name="Main droite"
+V:2 clef=bass name="Main gauche"
+V:1
+"Am"!p!z2 e2 c2 A2 | "Em"B6 z2 | "Dm"z2 d2 A2 F2 | "E"^G6 z2 |
+V:2
+A,,E,A,C A,,E,A,C | E,,B,,E,G, E,,B,,E,G, | D,,A,,D,F, D,,A,,D,F, | E,,B,,E,^G, E,,B,,E,^G, |
+V:1
+"F"!f![cfa]2 [cfa]2 [cfa]2 [cfa]2 | "G"[dgb]2 [dgb]2 [dgb]2 a/b/^c'/d'/ | "A"!fermata![ea^c'e']8 |]
+V:2
+F,,2 C,2 F,2 C,2 | G,,2 D,2 G,2 D,2 | [A,,A,]8 |]
+{end_of_abc}
+
+{start_of_grid: Grille du couplet}
+| Am . . . | Em . . . | Dm . . . | E . . . |
+| Am . . . | Em . . . | Dm . . . | E . . . |
+{end_of_grid}
+
+{start_of_verse: Couplet 1}
+Le matin se [Am]lève sur la ville
+Les rues sont [Em]vides, le café est [Dm]froid [E]
+Je prends la [Am]route qui file vers le sud
+Je laisse der[Em]rière moi tout ce qui pèse [Dm]sur mes [E]pas
+{end_of_verse}
+
+{start_of_verse: Couplet 2}
+Les néons [Am]brillent au-dessus du bar
+On joue trop [Em]fort et personne n'a [Dm]peur [E]
+Le batteur [Am]compte, la salle se lève
+Et les cla[Em]viers répondent à la voix du [Dm]chan[E]teur
+{end_of_verse}
+
+{start_of_chorus}
+On tient [C]debout, plus fort que [G]jamais
+Les mains sur les [Am]touches et le cœur à l'[F]aise
+On tient [C]debout, encore [G]ce soir
+Une chanson de [Am]plus avant de dire au re[F]voir
+On tient [C]debout [G] oh oh [Am]oh [F]
+On tient [C]debout [G] oh oh [Am]oh [F]
+{end_of_chorus}
+
+{comment: Riff main droite entre les deux refrains}
+{image: /samples/riff-test.png width=70%}
+
+{start_of_verse: Couplet 3}
+Quand tout s'é[Am]teint il reste la scène
+Trois accords [Em]simples et l'envie d'y [Dm]croire [E]
+On range les [Am]câbles sous la pluie fine
+On rentre [Em]tard, on rejoue de[Dm]main [E]soir
+{end_of_verse}
+
+{chorus}
+
+{start_of_bridge: Final}
+[C]Toujours debout, [G]toujours debout [Am] [F]
+{end_of_bridge}

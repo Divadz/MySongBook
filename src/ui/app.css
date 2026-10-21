@@ -407,3 +407,164 @@ body,
   border-radius: 4px;
   cursor: pointer;
 }
+
+.sidebar-button.primary {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+.sidebar-note {
+  font-size: 12px;
+  color: #666;
+}
+.sidebar-error {
+  font-size: 12px;
+  color: #900;
+  background: #fff3f3;
+  border: 1px solid #e0b4b4;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+.toolbar .notice {
+  font-size: 13px;
+  color: #2a6b2a;
+}
+.placeholder {
+  margin-top: 40px;
+  color: #666;
+}
+
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.lib-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.lib-name {
+  flex: 1;
+  font-weight: 700;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-icon {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #bbb;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+.lib-new {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: #f4f4f4;
+  border-radius: 4px;
+}
+.lib-new input,
+.lib-new select {
+  padding: 4px 6px;
+}
+.lib-search {
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.lib-tools {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+.lib-tools .spacer {
+  flex: 1;
+}
+.sidebar .lib-tools label {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.lib-list {
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0;
+}
+.lib-folder-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 6px 2px 2px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #444;
+  cursor: pointer;
+  text-align: left;
+}
+.lib-folder-head .caret {
+  width: 12px;
+}
+.lib-count {
+  margin-left: auto;
+  font-weight: 400;
+  color: #888;
+}
+.lib-folder ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lib-folder li {
+  padding: 5px 8px 5px 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.lib-folder li:hover {
+  background: #f0f0f0;
+}
+.lib-folder li.active {
+  background: #111;
+  color: #fff;
+}
+.lib-title {
+  font-size: 14px;
+}
+.lib-sub {
+  font-size: 11px;
+  color: #777;
+}
+.lib-folder li.active .lib-sub {
+  color: #ccc;
+}
+.lib-badge {
+  font-size: 9px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.lib-empty {
+  color: #777;
+  font-size: 13px;
+  padding: 8px;
+}

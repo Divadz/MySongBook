@@ -1,0 +1,31 @@
+{title: Blues en do}
+{subtitle: test des sections grid et tab}
+{artist: MySongBook}
+{key: C}
+{tempo: 120}
+
+{comment: Une grille sur douze mesures, puis une ligne d'accords seule, puis une tablature.}
+
+{start_of_grid: Blues en do}
+| C7 . . . | F7 . . . | C7 . . . | C7 . . . |
+| F7 . . . | F7 . . . | C7 . . . | C7 . . . |
+| G7 . . . | F7 . . . | C7 . . . | G7 . . . |
+{end_of_grid}
+
+{start_of_verse: Thème}
+[C7]   [F7]   [C7]   [C7]
+Woke up this [F7]morning, the [F7]sun was [C7]gone [C7]
+[G7]Woke up this [F7]morning, [C7]feeling all a[G7]lone
+{end_of_verse}
+
+{start_of_tab: Riff basse}
+G|-----------------|-----------------|
+D|-----------------|-----------------|
+A|-3---3---5---6---|-3---3---5---6---|
+E|-----------------|-----------------|
+{end_of_tab}
+
+{start_of_chorus}
+[C7]Still got the [F7]blues, [C7]yeah
+[G7]Still got the [F7]blues to[C7]day [G7]
+{end_of_chorus}

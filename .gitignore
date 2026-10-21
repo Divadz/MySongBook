@@ -4,3 +4,4 @@ android/app/build/
 .env
 *.local
 .tmp-test/
+fixtures/library/.mysongbook/

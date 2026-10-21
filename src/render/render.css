@@ -122,3 +122,10 @@
   padding: 0.5mm 1.5mm;
   display: inline-block;
 }
+
+.u-image.missing {
+  border: 0.3mm dashed #000;
+  padding: 2mm;
+  font-size: 9pt;
+  font-style: italic;
+}

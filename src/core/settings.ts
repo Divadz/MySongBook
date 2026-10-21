@@ -169,21 +169,25 @@ const STORAGE_KEY = 'mysongbook.render.v2';
 export function loadRenderSettings(): RenderSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultRenderSettings;
-    const saved = JSON.parse(raw) as Partial<RenderSettings>;
-    const d = defaultRenderSettings;
-    const styles = { ...d.styles };
-    for (const k of Object.keys(d.styles) as StyleKey[]) styles[k] = { ...d.styles[k], ...(saved.styles?.[k] ?? {}) };
-    return {
-      ...d,
-      ...saved,
-      styles,
-      metaFields: { ...d.metaFields, ...(saved.metaFields ?? {}) },
-      sectionLabels: { ...d.sectionLabels, ...(saved.sectionLabels ?? {}) },
-    };
+    return raw ? mergeRenderSettings(JSON.parse(raw)) : defaultRenderSettings;
   } catch {
     return defaultRenderSettings;
   }
+}
+
+/** Complète des réglages lus (fichier ou stockage) avec les valeurs par défaut. */
+export function mergeRenderSettings(saved: Partial<RenderSettings> | null | undefined): RenderSettings {
+  const d = defaultRenderSettings;
+  if (!saved || typeof saved !== 'object') return d;
+  const styles = { ...d.styles };
+  for (const k of Object.keys(d.styles) as StyleKey[]) styles[k] = { ...d.styles[k], ...(saved.styles?.[k] ?? {}) };
+  return {
+    ...d,
+    ...saved,
+    styles,
+    metaFields: { ...d.metaFields, ...(saved.metaFields ?? {}) },
+    sectionLabels: { ...d.sectionLabels, ...(saved.sectionLabels ?? {}) },
+  };
 }
 
 export function saveRenderSettings(settings: RenderSettings): void {

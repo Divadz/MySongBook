@@ -1,0 +1,21 @@
+{title: Route du sud}
+{artist: Kenata}
+{key: D}
+{tempo: 98}
+{time: 4/4}
+{tags: rock, kenata}
+{comment: Riff d'intro à la guitare, entrée clavier au premier couplet}
+
+{start_of_grid: Intro}
+| D . C . | G . . . | D . C . | G . . . |
+{end_of_grid}
+
+{start_of_verse: Couplet 1}
+[D]Les roues tournent en[C]core [G]
+[D]Sur la route qui me ra[C]mène chez [G]moi
+{end_of_verse}
+
+{start_of_chorus}
+[D]Douce route du [C]sud [G]
+Sous un [D]ciel si [C]bleu [G]
+{end_of_chorus}

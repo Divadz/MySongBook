@@ -119,6 +119,9 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       );
     case 'image': {
       const width = unit.width ?? '100%';
+      if (unit.src.startsWith('missing:')) {
+        return <div className="u-image missing">Image introuvable : {unit.src.slice('missing:'.length)}</div>;
+      }
       return (
         <div className="u-image">
           <img src={unit.src} style={{ width }} onLoad={onContentChange} alt="" />
