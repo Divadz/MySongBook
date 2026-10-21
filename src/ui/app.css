@@ -132,6 +132,9 @@ body,
   border-color: #111;
 }
 
+.workspace[hidden] {
+  display: none;
+}
 .workspace {
   flex: 1 1 auto;
   display: flex;
@@ -828,4 +831,115 @@ body,
   background: none;
   cursor: pointer;
   margin-left: 4px;
+}
+
+.converter {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+}
+.cv-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  flex-wrap: wrap;
+}
+.cv-title {
+  font-weight: 700;
+  width: 100%;
+}
+.cv-head label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: #555;
+  gap: 2px;
+}
+.cv-head input,
+.cv-head select {
+  padding: 5px 6px;
+  font-size: 14px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  min-width: 180px;
+}
+.cv-head .cv-key input {
+  min-width: 0;
+  width: 70px;
+}
+.cv-head .spacer {
+  flex: 1;
+}
+.cv-head button {
+  padding: 7px 12px;
+  border: 1px solid #999;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.cv-head button.primary {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+.cv-head button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.cv-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.cv-pane {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid #ddd;
+}
+.cv-label {
+  font-size: 12px;
+  color: #555;
+  padding: 6px 12px;
+  background: #f6f6f6;
+  border-bottom: 1px solid #e4e4e4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cv-stat {
+  color: #888;
+}
+.cv-regen {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid #999;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.cv-pane textarea {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 10px 12px;
+  font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre;
+  overflow: auto;
+}
+.cv-foot {
+  font-size: 12px;
+  color: #666;
+  padding: 6px 12px;
+  border-top: 1px solid #ddd;
 }

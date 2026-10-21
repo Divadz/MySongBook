@@ -226,7 +226,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 |:---|:--------:|:---------|
 | EDI-01 | P1 | Éditeur texte du `.cho` sur PC, avec aperçu en direct, sauvegarde explicite et Ctrl-S |
 | EDI-02 | P1 | Même éditeur simplifié sur tablette (plein écran, police lisible, clavier virtuel) |
-| EDI-03 | P1 | Convertisseur « accords sur paroles → ChordPro » : coller un texte, obtenir un `.cho` propre (détection des lignes d'accords, des titres de section, des métadonnées en tête), sur PC et tablette |
+| EDI-03 | P1 | Convertisseur « accords sur paroles → ChordPro » : coller un texte, obtenir un `.cho` propre (détection des lignes d'accords, des titres de section, des métadonnées en tête), sur PC et tablette. Fait le 2026-10-21 |
 | EDI-04 | P2 | Aide à la saisie : insertion d'accord, de directive, de section ; coloration syntaxique légère |
 | EDI-05 | P2 | Édition des métadonnées par formulaire (titre, artiste, tonalité, tempo, tags) écrite dans les directives |
 | EDI-06 | P2 | Note texte du morceau (premier `{comment:}` du fichier) éditable depuis la vue lecture sans ouvrir l'éditeur complet |

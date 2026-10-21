@@ -24,6 +24,7 @@ import { HttpLibrary, devLibraryInfo } from '../core/httpLibrary';
 import { newSetFile, noteAsChordPro, scanSets, serializeSet, sortSets, type Setlist } from '../core/setlist';
 import { DisplaySettings } from './DisplaySettings';
 import { SetsPanel } from './SetsPanel';
+import { ConverterView } from './ConverterView';
 import { LibraryPanel } from './LibraryPanel';
 import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
@@ -47,11 +48,14 @@ export function App() {
   const [samples, setSamples] = useState<SampleEntry[]>([]);
 
   /** Élément affiché : morceau de la bibliothèque, échantillon, ou note de set. */
-  type Current = { kind: 'library' | 'sample'; path: string } | { kind: 'note'; path: string; text: string };
+  type Current =
+    | { kind: 'library' | 'sample'; path: string }
+    | { kind: 'note' | 'scratch'; path: string; text: string };
   const [current, setCurrent] = useState<Current | null>(null);
 
   // --- Sets -----------------------------------------------------------------
   const [sets, setSets] = useState<Setlist[]>([]);
+  const [showConverter, setShowConverter] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<'songs' | 'sets'>('songs');
   const [openSet, setOpenSet] = useState<string | null>(null);
   /** Set en cours de jeu et position dans le set. */
@@ -187,6 +191,7 @@ export function App() {
     let cancelled = false;
     const load = async (): Promise<string> => {
       if (current.kind === 'note') return noteAsChordPro(current.text);
+      if (current.kind === 'scratch') return current.text;
       if (current.kind === 'sample') return (await fetch(`/samples/${current.path}`)).text();
       if (!library) return '';
       if (/\.pdf$/i.test(current.path)) return '';
@@ -256,6 +261,19 @@ export function App() {
     await saveIfNeeded();
     wantLastPage.current = false;
     setCurrent(target);
+  };
+
+  /** Résultat du convertisseur : nouveau fichier, ou brouillon à télécharger sans bibliothèque. */
+  const createFromConverter = async (folder: string, title: string, chordpro: string) => {
+    setShowConverter(false);
+    setPlaying(null);
+    if (library) {
+      await createSong(folder, title, chordpro);
+    } else {
+      await saveIfNeeded();
+      setCurrent({ kind: 'scratch', path: fileNameFromTitle(title), text: chordpro });
+      setMode('edit');
+    }
   };
 
   // --- Sets : fichiers ------------------------------------------------------
@@ -329,7 +347,7 @@ export function App() {
     }
   };
 
-  const createSong = async (folder: string, title: string) => {
+  const createSong = async (folder: string, title: string, content?: string) => {
     if (!library) return;
     const dir = `${SONGS_DIR}${folder ? `${folder}/` : ''}`;
     let name = fileNameFromTitle(title);
@@ -337,7 +355,7 @@ export function App() {
     const path = dir + name;
     try {
       await saveIfNeeded();
-      await library.writeText(path, newSongTemplate(title));
+      await library.writeText(path, content ?? newSongTemplate(title));
       await refresh(library);
       setCurrent({ kind: 'library', path });
       setMode('edit');
@@ -616,6 +634,9 @@ export function App() {
             </ul>
           </>
         )}
+        <button className="sidebar-button" onClick={() => setShowConverter(true)} title="Coller un texte avec les accords au-dessus des paroles">
+          Convertir un texte…
+        </button>
         {libError && <div className="sidebar-error">{libError}</div>}
         <button className="sidebar-button" onClick={() => setShowSettings(true)}>
           Réglages d’affichage…
@@ -684,7 +705,15 @@ export function App() {
             ▶
           </button>
         </div>
-        <div className="workspace" ref={workspaceRef}>
+        {showConverter && (
+          <ConverterView
+            folders={[...new Set(entries.map((e) => e.folder))].sort((a, b) => a.localeCompare(b, 'fr'))}
+            libraryOpen={library !== null}
+            onCreate={createFromConverter}
+            onClose={() => setShowConverter(false)}
+          />
+        )}
+        <div className="workspace" ref={workspaceRef} hidden={showConverter}>
           {mode === 'edit' && (
             <div className="editor-pane" style={{ width: `${editorWidth}%` }}>
               <div className="editor-row">
