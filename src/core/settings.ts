@@ -8,19 +8,35 @@ export interface TextStyle {
   size: number;
   bold: boolean;
   italic: boolean;
-  /** Décalage à droite, en mm. */
+  /** Décalage à droite, en em (largeur d'environ un caractère à la taille du bloc). */
   indent: number;
 }
 
 /** Types de blocs stylables. */
-export type StyleKey = 'title' | 'meta' | 'verse' | 'chorus' | 'bridge' | 'chords' | 'comment';
+export type StyleKey =
+  | 'title'
+  | 'meta'
+  | 'label'
+  | 'verse'
+  | 'chorus'
+  | 'bridge'
+  | 'grid'
+  | 'tab'
+  | 'chords'
+  | 'comment';
+
+/** Ordre d'affichage dans les réglages. */
+export const STYLE_ORDER: StyleKey[] = ['title', 'meta', 'label', 'verse', 'chorus', 'bridge', 'grid', 'tab', 'chords', 'comment'];
 
 export const STYLE_LABELS: Record<StyleKey, string> = {
   title: 'Titre',
   meta: 'Métadonnées',
+  label: 'Libellés de section',
   verse: 'Couplet',
   chorus: 'Refrain',
   bridge: 'Pont',
+  grid: 'Grilles',
+  tab: 'Tablatures',
   chords: 'Accords',
   comment: 'Notes de texte',
 };
@@ -32,6 +48,9 @@ export const STYLE_HAS_INDENT: Record<StyleKey, boolean> = {
   verse: true,
   chorus: true,
   bridge: true,
+  label: true,
+  grid: true,
+  tab: true,
   chords: false,
   comment: true,
 };
@@ -63,7 +82,7 @@ export const META_FIELDS: { key: MetaField; label: string }[] = [
 ];
 
 /** Sections dont le libellé (« Couplet 1 », « Refrain ») peut être masqué. */
-export type LabelledSection = 'verse' | 'chorus' | 'bridge';
+export type LabelledSection = 'verse' | 'chorus' | 'bridge' | 'grid' | 'tab' | 'abc';
 
 export interface RenderSettings {
   styles: Record<StyleKey, TextStyle>;
@@ -78,6 +97,10 @@ export interface RenderSettings {
   columnGap: number;
   /** Afficher les accords (false = mode paroles seules). */
   showChords: boolean;
+  /** Taille des portées ABC (1 = taille normale). */
+  abcScale: number;
+  /** Version du format : 3 = décalages en em. */
+  version: number;
 }
 
 export interface DeviceSettings {
@@ -95,9 +118,12 @@ export const defaultRenderSettings: RenderSettings = {
   styles: {
     title: style(20, true),
     meta: style(10),
+    label: style(12, true),
     verse: style(12),
-    chorus: style(12, true, false, 4),
-    bridge: style(12, false, true, 4),
+    chorus: style(12, true, false, 2),
+    bridge: style(12, false, true, 2),
+    grid: style(11),
+    tab: style(11),
     chords: style(12, true),
     comment: style(11, false, true),
   },
@@ -113,11 +139,13 @@ export const defaultRenderSettings: RenderSettings = {
     copyright: true,
     tags: false,
   },
-  sectionLabels: { verse: true, chorus: true, bridge: true },
+  sectionLabels: { verse: true, chorus: true, bridge: true, grid: true, tab: true, abc: true },
   lineHeight: 1.25,
   columns: 1,
   columnGap: 8,
   showChords: true,
+  abcScale: 1,
+  version: 3,
 };
 
 /** Boox Max Lumi 2 : écran 13,3" au format A4. */
@@ -128,14 +156,14 @@ export const defaultDeviceSettings: DeviceSettings = {
   fontScale: 1,
 };
 
-/** Style des paroles d'une section ; grilles, tablatures et lignes hors section suivent le couplet. */
+/** Style d'une section ; lignes hors section et sections personnalisées suivent le couplet. */
 export function sectionStyleKey(type: string): StyleKey {
-  if (type === 'chorus' || type === 'bridge') return type;
+  if (type === 'chorus' || type === 'bridge' || type === 'grid' || type === 'tab') return type;
   return 'verse';
 }
 
 export function showSectionLabel(settings: RenderSettings, type: string): boolean {
-  if (type === 'chorus' || type === 'bridge' || type === 'verse') return settings.sectionLabels[type];
+  if (type in settings.sectionLabels) return settings.sectionLabels[type as LabelledSection];
   return type !== 'none';
 }
 
@@ -145,7 +173,7 @@ export function css(st: TextStyle, scale: number, withIndent = true): CSSPropert
     fontSize: `${st.size * scale}pt`,
     fontWeight: st.bold ? 700 : 400,
     fontStyle: st.italic ? 'italic' : 'normal',
-    marginLeft: withIndent ? `${st.indent}mm` : undefined,
+    marginLeft: withIndent ? `${st.indent}em` : undefined,
   };
 }
 
@@ -157,7 +185,7 @@ export function applyTextsize(settings: RenderSettings, textsize: number | undef
   if (!textsize || textsize <= 0) return settings;
   const factor = textsize / settings.styles.verse.size;
   const styles = { ...settings.styles };
-  for (const k of ['verse', 'chorus', 'bridge', 'chords', 'comment'] as StyleKey[]) {
+  for (const k of ['label', 'verse', 'chorus', 'bridge', 'grid', 'tab', 'chords', 'comment'] as StyleKey[]) {
     styles[k] = { ...styles[k], size: Math.round(styles[k].size * factor * 2) / 2 };
   }
   return { ...settings, styles };
@@ -180,10 +208,19 @@ export function mergeRenderSettings(saved: Partial<RenderSettings> | null | unde
   const d = defaultRenderSettings;
   if (!saved || typeof saved !== 'object') return d;
   const styles = { ...d.styles };
-  for (const k of Object.keys(d.styles) as StyleKey[]) styles[k] = { ...d.styles[k], ...(saved.styles?.[k] ?? {}) };
+  for (const k of Object.keys(d.styles) as StyleKey[]) {
+    const st = { ...d.styles[k], ...(saved.styles?.[k] ?? {}) };
+    // Avant la version 3, les décalages étaient en millimètres : conversion en em.
+    if ((saved.version ?? 0) < 3 && saved.styles?.[k]) {
+      const mmPerEm = st.size * 0.3528;
+      st.indent = Math.round((st.indent / mmPerEm) * 2) / 2;
+    }
+    styles[k] = st;
+  }
   return {
     ...d,
     ...saved,
+    version: 3,
     styles,
     metaFields: { ...d.metaFields, ...(saved.metaFields ?? {}) },
     sectionLabels: { ...d.sectionLabels, ...(saved.sectionLabels ?? {}) },

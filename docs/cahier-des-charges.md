@@ -203,7 +203,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
 | REG-01 | P1 | Taille de police des paroles et des accords, interligne, marges de page |
-| REG-02 | P1 | Style par type de bloc (titre, métadonnées, couplet, refrain, pont, accords, notes de texte) : taille, gras, italique, décalage à droite (sauf accords) ; choix des métadonnées affichées ; libellés de section affichés ou non. Fait le 2026-10-21 |
+| REG-02 | P1 | Style par type de bloc (titre, métadonnées, libellés de section, couplet, refrain, pont, grilles, tablatures, accords, notes de texte) : taille, gras, italique, décalage à droite en em (sauf accords) ; taille des portées ABC ; choix des métadonnées affichées ; libellés affichés ou non par type de section. Fait le 2026-10-21 |
 | REG-03 | P1 | Nombre de colonnes (1 ou 2), coupure des lignes longues (couper ou réduire) |
 | REG-04 | P2 | Position des accords (au-dessus, en ligne entre crochets), police monospace pour tablatures et grilles |
 | REG-05 | P2 | Réglages partagés dans `.mysongbook/settings.json` (même rendu PC et tablette) ; par appareil (`device-<nom>.json`) : format de page, facteur d'échelle des polices, touches de volume, rafraîchissement e-ink |

@@ -1,5 +1,6 @@
 import {
   META_FIELDS,
+  STYLE_ORDER,
   STYLE_HAS_INDENT,
   STYLE_LABELS,
   defaultRenderSettings,
@@ -16,11 +17,13 @@ interface Props {
   onClose: () => void;
 }
 
-const STYLE_ORDER: StyleKey[] = ['title', 'meta', 'verse', 'chorus', 'bridge', 'chords', 'comment'];
 const LABELLED: { key: LabelledSection; label: string }[] = [
   { key: 'verse', label: 'Couplets' },
   { key: 'chorus', label: 'Refrains' },
   { key: 'bridge', label: 'Ponts' },
+  { key: 'grid', label: 'Grilles' },
+  { key: 'tab', label: 'Tablatures' },
+  { key: 'abc', label: 'Portées ABC' },
 ];
 
 /** Réglages d'affichage communs à tous les morceaux, avec effet immédiat sur l'aperçu. */
@@ -49,7 +52,7 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
             <th>Taille</th>
             <th title="Gras">G</th>
             <th title="Italique">I</th>
-            <th title="Décalage à droite, en millimètres">Décalage</th>
+            <th title="Décalage à droite, en em : environ un caractère à la taille du bloc">Décalage</th>
           </tr>
         </thead>
         <tbody>
@@ -88,12 +91,12 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
                       <input
                         type="number"
                         min={0}
-                        max={60}
-                        step={1}
+                        max={20}
+                        step={0.5}
                         value={st.indent}
                         onChange={(e) => setStyle(key, { indent: Math.max(0, Number(e.target.value) || 0) })}
                       />
-                      <span className="ds-unit">mm</span>
+                      <span className="ds-unit">em</span>
                     </>
                   ) : (
                     <span className="ds-na" title="Les accords suivent la position des paroles">—</span>
@@ -145,6 +148,20 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
             <option value={2}>2</option>
           </select>
         </label>
+        <label>
+          Portées ABC
+          <span>
+            <input
+              type="number"
+              min={50}
+              max={200}
+              step={5}
+              value={Math.round(settings.abcScale * 100)}
+              onChange={(e) => onChange({ ...settings, abcScale: (Number(e.target.value) || 100) / 100 })}
+            />
+            <span className="ds-unit">%</span>
+          </span>
+        </label>
         <label className="ds-inline">
           <input type="checkbox" checked={settings.showChords} onChange={(e) => onChange({ ...settings, showChords: e.target.checked })} />
           Afficher les accords
@@ -152,8 +169,9 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
       </div>
 
       <p className="ds-note">
-        Un morceau peut imposer sa taille par la directive {'{textsize}'} (taille du couplet, les autres blocs gardent leur
-        proportion) et son nombre de colonnes par {'{columns}'}.
+        Le décalage est en em : 1 em vaut à peu près la largeur d'un caractère à la taille du bloc. Les libellés de
+        section suivent le décalage de leur section, plus le leur. Un morceau peut imposer sa taille par la directive {'{textsize}'} (taille du couplet ; libellés, refrains, ponts,
+        grilles, tablatures, accords et notes gardent leur proportion) et son nombre de colonnes par {'{columns}'}.
       </p>
 
       <button className="ds-reset" onClick={() => onChange(defaultRenderSettings)}>

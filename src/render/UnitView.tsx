@@ -61,9 +61,13 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       );
     }
     case 'header': {
-      const st = S[sectionStyleKey(unit.type)];
+      // Le libellé s'aligne sur sa section, plus son propre décalage.
+      const sec = S[sectionStyleKey(unit.type)];
       return (
-        <div className="u-header" style={{ ...css(st, scale), fontWeight: 700, fontStyle: 'normal' }}>
+        <div
+          className="u-header"
+          style={{ ...css(S.label, scale), marginLeft: `calc(${sec.indent * sec.size * scale}pt + ${S.label.indent}em)` }}
+        >
           {unit.label}
         </div>
       );
@@ -76,9 +80,9 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
         paddingBottom: unit.last ? `${st.size * 0.6 * scale}pt` : 0,
       };
       if (line.kind === 'literal') {
-        // Grilles et tablatures : chasse fixe, sans gras ni italique.
+        // Grilles et tablatures : chasse fixe.
         return (
-          <pre className="u-literal" style={{ ...css(st, scale), fontWeight: 400, fontStyle: 'normal', ...spacing }}>
+          <pre className="u-literal" style={{ ...css(st, scale), ...spacing }}>
             {line.text}
           </pre>
         );
@@ -110,11 +114,11 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       return (
         <AbcView
           abc={unit.abc}
-          label={unit.label}
+          label={settings.sectionLabels.abc ? unit.label : undefined}
           widthPx={columnWidthMm * MM_TO_PX}
           transpose={transpose}
-          scale={scale}
-          labelSize={S.verse.size * scale}
+          scale={scale * settings.abcScale}
+          labelStyle={css(S.label, scale)}
         />
       );
     case 'image': {
@@ -145,10 +149,10 @@ interface AbcProps {
   widthPx: number;
   transpose: number;
   scale: number;
-  labelSize: number;
+  labelStyle: React.CSSProperties;
 }
 
-function AbcView({ abc, label, widthPx, transpose, scale, labelSize }: AbcProps) {
+function AbcView({ abc, label, widthPx, transpose, scale, labelStyle }: AbcProps) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (!ref.current) return;
@@ -171,7 +175,7 @@ function AbcView({ abc, label, widthPx, transpose, scale, labelSize }: AbcProps)
   return (
     <div className="u-abc">
       {label && (
-        <div className="u-header" style={{ fontSize: `${labelSize}pt` }}>
+        <div className="u-header" style={labelStyle}>
           {label}
         </div>
       )}
