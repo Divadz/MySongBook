@@ -51,6 +51,17 @@ export function SongPages({ song, settings, device, page, onPageCount }: Props) 
   }, [units, settings, device, columns, innerH, tick, onPageCount]);
 
   const bump = () => setTick((t) => t + 1);
+  useLayoutEffect(() => {
+    if (!document.fonts) return;
+    let alive = true;
+    document.fonts.ready.then(() => alive && setTick((t) => t + 1));
+    const onDone = () => alive && setTick((t) => t + 1);
+    document.fonts.addEventListener('loadingdone', onDone);
+    return () => {
+      alive = false;
+      document.fonts.removeEventListener('loadingdone', onDone);
+    };
+  }, []);
   const common = { settings, device, columnWidthMm, transpose: song.totalTranspose };
 
   const current = layout[Math.min(page, Math.max(0, layout.length - 1))] ?? [];

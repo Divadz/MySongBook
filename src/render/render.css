@@ -1,4 +1,14 @@
-/* Rendu des pages : noir et blanc, pensé pour l'e-ink et l'impression. */
+/* Rendu des pages : noir et blanc, pensé pour l'e-ink et l'impression.
+ *
+ * Polices embarquées (Roboto, Roboto Mono). font-size-adjust égalise la
+ * hauteur des capitales : à taille égale en points, une grille en chasse
+ * fixe et un accord ont des lettres de même hauteur.
+ */
+:root {
+  --msb-sans: 'Roboto', sans-serif;
+  --msb-mono: 'Roboto Mono', monospace;
+  --msb-cap: cap-height 0.7;
+}
 
 .page {
   position: relative;
@@ -9,7 +19,8 @@
   flex-direction: row;
   align-items: flex-start;
   overflow: hidden;
-  font-family: 'Segoe UI', 'Open Sans', Arial, sans-serif;
+  font-family: var(--msb-sans);
+  font-size-adjust: var(--msb-cap);
 }
 
 .column {
@@ -24,7 +35,8 @@
   top: 0;
   visibility: hidden;
   pointer-events: none;
-  font-family: 'Segoe UI', 'Open Sans', Arial, sans-serif;
+  font-family: var(--msb-sans);
+  font-size-adjust: var(--msb-cap);
   color: #000;
 }
 
@@ -80,7 +92,8 @@
 
 .u-literal {
   margin: 0;
-  font-family: 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  font-family: var(--msb-mono);
+  font-size-adjust: var(--msb-cap);
   white-space: pre;
   overflow: hidden;
 }

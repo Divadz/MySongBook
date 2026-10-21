@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './render/fonts';
 import { App } from './ui/App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
