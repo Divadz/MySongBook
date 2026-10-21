@@ -1,0 +1,116 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #e9e9e9;
+  color: #111;
+}
+
+.app {
+  display: flex;
+  height: 100%;
+}
+
+.sidebar {
+  width: 260px;
+  flex: 0 0 auto;
+  background: #fff;
+  border-right: 1px solid #ccc;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+.sidebar h1 {
+  font-size: 18px;
+  margin: 0 0 8px 0;
+}
+.sidebar-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-top: 8px;
+}
+.songlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.songlist li {
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.songlist li:hover {
+  background: #f0f0f0;
+}
+.songlist li.active {
+  background: #111;
+  color: #fff;
+}
+.sidebar label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 2px;
+}
+.sidebar label input[type='checkbox'] {
+  margin-right: 6px;
+}
+
+.main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #ccc;
+  font-size: 14px;
+}
+.toolbar .song-title {
+  font-weight: 700;
+}
+.toolbar .spacer {
+  flex: 1;
+}
+.toolbar button {
+  min-width: 36px;
+  height: 32px;
+  font-size: 16px;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.viewport {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12px;
+  cursor: pointer;
+}
+.page-scaler {
+  transform-origin: top center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}

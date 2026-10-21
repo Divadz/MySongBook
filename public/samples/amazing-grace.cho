@@ -1,0 +1,105 @@
+{title: Amazing Grace}
+{artist: John Newton}
+{key: G}
+{tempo: 72}
+{time: 3/4}
+{textsize: 13}
+{columns: 2}
+{comment: Hymne du domaine public, ici pour tester la pagination sur plusieurs pages.}
+
+{start_of_verse: Verse 1}
+A[G]mazing grace, how [G7]sweet the [C]sound
+That [G]saved a wretch like [D]me
+I [G]once was lost, but [G7]now am [C]found
+Was [G]blind, but [D]now I [G]see
+{end_of_verse}
+
+{start_of_verse: Verse 2}
+'Twas [G]grace that taught my [G7]heart to [C]fear
+And [G]grace my fears re[D]lieved
+How [G]precious did that [G7]grace ap[C]pear
+The [G]hour I [D]first be[G]lieved
+{end_of_verse}
+
+{start_of_verse: Verse 3}
+Through [G]many dangers, [G7]toils and [C]snares
+I [G]have already [D]come
+'Tis [G]grace hath brought me [G7]safe thus [C]far
+And [G]grace will [D]lead me [G]home
+{end_of_verse}
+
+{start_of_chorus}
+A[G]mazing grace, how [G7]sweet the [C]sound
+That [G]saved a wretch like [D]me
+{end_of_chorus}
+
+{start_of_verse: Verse 4}
+The [G]Lord has promised [G7]good to [C]me
+His [G]word my hope se[D]cures
+He [G]will my shield and [G7]portion [C]be
+As [G]long as [D]life en[G]dures
+{end_of_verse}
+
+{start_of_verse: Verse 5}
+Yea, [G]when this flesh and [G7]heart shall [C]fail
+And [G]mortal life shall [D]cease
+I [G]shall possess with[G7]in the [C]veil
+A [G]life of [D]joy and [G]peace
+{end_of_verse}
+
+{chorus}
+
+{start_of_verse: Verse 6}
+The [G]earth shall soon dis[G7]solve like [C]snow
+The [G]sun forbear to [D]shine
+But [G]God, who called me [G7]here be[C]low
+Will [G]be for[D]ever [G]mine
+{end_of_verse}
+
+{start_of_verse: Verse 7}
+When [G]we've been there ten [G7]thousand [C]years
+Bright [G]shining as the [D]sun
+We've [G]no less days to [G7]sing God's [C]praise
+Than [G]when we [D]first be[G]gun
+{end_of_verse}
+
+{new_page}
+
+{start_of_verse: Verse 1 (reprise, nouvelle page)}
+A[G]mazing grace, how [G7]sweet the [C]sound
+That [G]saved a wretch like [D]me
+I [G]once was lost, but [G7]now am [C]found
+Was [G]blind, but [D]now I [G]see
+{end_of_verse}
+
+{chorus}
+
+{start_of_verse: Verse 2 (reprise)}
+'Twas [G]grace that taught my [G7]heart to [C]fear
+And [G]grace my fears re[D]lieved
+How [G]precious did that [G7]grace ap[C]pear
+The [G]hour I [D]first be[G]lieved
+{end_of_verse}
+
+{start_of_verse: Verse 3 (reprise)}
+Through [G]many dangers, [G7]toils and [C]snares
+I [G]have already [D]come
+'Tis [G]grace hath brought me [G7]safe thus [C]far
+And [G]grace will [D]lead me [G]home
+{end_of_verse}
+
+{start_of_verse: Verse 4 (reprise)}
+The [G]Lord has promised [G7]good to [C]me
+His [G]word my hope se[D]cures
+He [G]will my shield and [G7]portion [C]be
+As [G]long as [D]life en[G]dures
+{end_of_verse}
+
+{start_of_verse: Verse 5 (reprise)}
+Yea, [G]when this flesh and [G7]heart shall [C]fail
+And [G]mortal life shall [D]cease
+I [G]shall possess with[G7]in the [C]veil
+A [G]life of [D]joy and [G]peace
+{end_of_verse}
+
+{chorus}

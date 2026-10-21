@@ -1,0 +1,123 @@
+/* Rendu des pages : noir et blanc, pensé pour l'e-ink et l'impression. */
+
+.page {
+  position: relative;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Open Sans', Arial, sans-serif;
+}
+
+.column {
+  flex: 0 0 auto;
+  height: 100%;
+  overflow: hidden;
+}
+
+.measure {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  font-family: 'Segoe UI', 'Open Sans', Arial, sans-serif;
+  color: #000;
+}
+
+.unit {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.page-number {
+  position: absolute;
+  right: 6mm;
+  bottom: 4mm;
+  font-size: 9pt;
+  color: #000;
+}
+
+.u-title {
+  padding-bottom: 3mm;
+}
+.u-title .title {
+  font-weight: 700;
+  line-height: 1.15;
+}
+.u-title .subtitle {
+  font-style: italic;
+}
+.u-title .meta {
+  padding-top: 1mm;
+}
+
+.u-header {
+  font-weight: 700;
+  text-decoration: underline;
+  padding-top: 1.5mm;
+  padding-bottom: 0.5mm;
+  line-height: 1.2;
+}
+
+.u-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.u-line .pair {
+  display: inline-flex;
+  flex-direction: column;
+  white-space: pre;
+}
+.u-line .chord {
+  font-weight: 700;
+  line-height: 1.15;
+  padding-right: 0.4em;
+}
+.u-line.chords-only .pair {
+  padding-right: 0.6em;
+}
+.u-line .lyrics {
+  min-height: 1em;
+}
+
+.u-literal {
+  margin: 0;
+  font-family: 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.u-comment {
+  padding: 0.5mm 0;
+}
+.u-comment.italic {
+  font-style: italic;
+}
+.u-comment.box {
+  border: 0.3mm solid #000;
+  padding: 1mm 2mm;
+}
+.u-comment.block {
+  padding: 1mm 0 2mm 0;
+}
+
+.u-image {
+  padding: 1mm 0 2mm 0;
+}
+.u-image img {
+  display: block;
+  max-width: 100%;
+  filter: grayscale(1);
+}
+
+.u-abc {
+  padding: 1mm 0 2mm 0;
+}
+.u-abc svg {
+  display: block;
+}
