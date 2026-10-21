@@ -32,6 +32,10 @@ export interface AbcBlock {
   kind: 'abc';
   label?: string;
   abc: string;
+  /** Facteur de taille propre au bloc ({start_of_abc scale=80%}). */
+  scale?: number;
+  /** Largeur de la portée : « 70% » de la colonne ou « 120mm ». */
+  width?: string;
 }
 
 export interface ImageBlock {
@@ -81,6 +85,48 @@ export interface SongModel {
 }
 
 const TRANSPOSE_RE = /^[ \t]*\{(?:transpose|x_msb_transpose)\s*:\s*([+-]?\d+)\s*\}[ \t]*\r?\n?/im;
+
+/**
+ * Attributs des débuts de section ({start_of_abc: Riff scale=80% width=70%}).
+ *
+ * ChordSheetJS ne protège plus le contenu d'un bloc ABC quand sa directive
+ * porte des attributs : une ligne comme « %%score {1 | 2} » est alors prise
+ * pour une directive. Les attributs sont donc retirés avant l'analyse (la
+ * ligne redevient « {start_of_abc: Riff} ») et rendus dans l'ordre des
+ * débuts de section. Formes acceptées : libellé puis attributs, attributs
+ * seuls, valeurs avec ou sans guillemets, label="…".
+ */
+const SECTION_START_RE = /^([ \t]*)\{\s*(start_of_[a-z_]+|so[a-z])(?=[\s:}])\s*:?\s*([^}]*)\}[ \t]*$/gim;
+const ATTR_RE = /([a-z_]+)\s*=\s*(?:"([^"]*)"|([^\s"}]+))/gi;
+
+export type SectionAttributes = Record<string, string>;
+
+export function extractSectionAttributes(source: string): { source: string; attributes: SectionAttributes[] } {
+  const attributes: SectionAttributes[] = [];
+  const out = source.replace(SECTION_START_RE, (whole, indent: string, name: string, rest: string) => {
+    const firstAttr = rest.search(/[a-z_]+\s*=/i);
+    if (firstAttr < 0) {
+      attributes.push({});
+      return whole;
+    }
+    const attrs: SectionAttributes = {};
+    for (const m of rest.slice(firstAttr).matchAll(ATTR_RE)) attrs[m[1].toLowerCase()] = m[2] ?? m[3];
+    const label = (rest.slice(0, firstAttr).trim() || attrs.label || '').replace(/[{}]/g, '');
+    attributes.push(attrs);
+    return `${indent}{${name}${label ? `: ${label}` : ''}}`;
+  });
+  return { source: out, attributes };
+}
+
+/** « 80% » → 0.8, « 0.8 » → 0.8 ; undefined si illisible. */
+function parseScale(v: string | undefined): number | undefined {
+  if (!v) return undefined;
+  const m = /^\s*(\d+(?:[.,]\d+)?)\s*(%?)\s*$/.exec(v);
+  if (!m) return undefined;
+  const n = parseFloat(m[1].replace(',', '.'));
+  const r = m[2] ? n / 100 : n;
+  return r > 0 ? r : undefined;
+}
 
 /** Lit la directive {transpose:} et renvoie le texte sans elle. */
 export function extractTranspose(source: string): { source: string; transpose: number } {
@@ -160,7 +206,9 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
   const { source: cleaned, transpose: fileTranspose } = extractTranspose(source);
   const totalTranspose = fileTranspose + extraTranspose;
 
-  let song = new ChordProParser().parse(cleaned);
+  const { source: plain, attributes: sectionAttrs } = extractSectionAttributes(cleaned);
+  let song = new ChordProParser().parse(plain);
+  let sectionIndex = 0;
   if (totalTranspose !== 0) song = song.transpose(totalTranspose);
 
   const meta: SongMeta = {
@@ -221,9 +269,10 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
       if (name.startsWith('start_of_')) {
         closeSection();
         const type = name.slice('start_of_'.length);
-        const label = structural.value?.trim() || undefined;
+        const attrs = sectionAttrs[sectionIndex++] ?? {};
+        const label = structural.value?.trim() || attrs.label?.trim() || undefined;
         if (type === 'abc') {
-          abc = { kind: 'abc', label, abc: '' };
+          abc = { kind: 'abc', label, abc: '', scale: parseScale(attrs.scale), width: attrs.width?.trim() || undefined };
         } else {
           section = { kind: 'section', type, label, lines: [] };
         }

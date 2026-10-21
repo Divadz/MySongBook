@@ -17,6 +17,17 @@ interface Props {
 
 const MM_TO_PX = 96 / 25.4;
 
+/** Largeur de portée : « 70% » de la colonne, « 120mm », sinon toute la colonne. */
+function abcWidthPx(width: string | undefined, columnWidthMm: number): number {
+  const full = columnWidthMm * MM_TO_PX;
+  if (!width) return full;
+  const pct = /^(\d+(?:\.\d+)?)\s*%$/.exec(width);
+  if (pct) return Math.min(full, (full * parseFloat(pct[1])) / 100);
+  const mm = /^(\d+(?:\.\d+)?)\s*mm$/.exec(width);
+  if (mm) return Math.min(full, parseFloat(mm[1]) * MM_TO_PX);
+  return full;
+}
+
 /** Lignes de métadonnées à afficher sous le titre, selon les champs choisis. */
 function metaLines(m: SongMeta, show: RenderSettings['metaFields']): string[] {
   const lines: string[] = [];
@@ -115,9 +126,9 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
         <AbcView
           abc={unit.abc}
           label={settings.sectionLabels.abc ? unit.label : undefined}
-          widthPx={columnWidthMm * MM_TO_PX}
+          widthPx={abcWidthPx(unit.width, columnWidthMm)}
           transpose={transpose}
-          scale={scale * settings.abcScale}
+          scale={scale * settings.abcScale * (unit.scale ?? 1)}
           labelStyle={css(S.label, scale)}
         />
       );

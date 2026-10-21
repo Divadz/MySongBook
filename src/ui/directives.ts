@@ -123,6 +123,13 @@ export const DIRECTIVE_GROUPS: DirectiveGroup[] = [
         ownLine: true,
         example: 'X:1 / M:4/4 / L:1/8 / K:Am / A2 c2 e2 a2 |',
       },
+      {
+        syntax: '{start_of_abc: Riff scale=80% width=70%}',
+        description:
+          "Taille propre à une portée : scale agrandit ou réduit les notes (80% ou 0.8), width limite la largeur de la portée (70% de la colonne ou 120mm). S'ajoute au réglage général des portées.",
+        snippet: '{start_of_abc: Riff scale=§80% width=100%}\nX:1\nM:4/4\nL:1/8\nK:C\n\n{end_of_abc}',
+        ownLine: true,
+      },
     ],
   },
   {

@@ -8,7 +8,7 @@ export type Unit =
   | { id: string; kind: 'title'; meta: SongMeta }
   | { id: string; kind: 'header'; type: string; label: string }
   | { id: string; kind: 'line'; type: string; line: SongLine; first: boolean; last: boolean }
-  | { id: string; kind: 'abc'; abc: string; label?: string }
+  | { id: string; kind: 'abc'; abc: string; label?: string; scale?: number; width?: string }
   | { id: string; kind: 'image'; src: string; width?: string }
   | { id: string; kind: 'comment'; text: string; style: CommentStyle }
   | { id: string; kind: 'break'; which: 'new_page' | 'column_break' };
@@ -34,7 +34,7 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
         break;
       }
       case 'abc':
-        units.push({ id, kind: 'abc', abc: block.abc, label: block.label });
+        units.push({ id, kind: 'abc', abc: block.abc, label: block.label, scale: block.scale, width: block.width });
         break;
       case 'image':
         units.push({ id, kind: 'image', src: block.src, width: block.width });
