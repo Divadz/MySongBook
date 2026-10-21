@@ -180,3 +180,107 @@ body,
 .splitter:hover {
   background: #999;
 }
+
+.editor-row {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.editor-row .editor {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cheatsheet {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #ccc;
+  background: #fafafa;
+  min-height: 0;
+  font-size: 13px;
+}
+.cs-head {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px 4px 12px;
+}
+.cs-title {
+  font-weight: 700;
+  flex: 1;
+}
+.cs-close {
+  border: none;
+  background: none;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+.cs-search {
+  margin: 4px 10px;
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.cs-hint {
+  padding: 2px 12px 6px;
+  color: #666;
+  font-size: 11px;
+}
+.cs-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0 8px 12px;
+}
+.cs-body h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin: 12px 4px 4px;
+}
+.cs-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  margin: 0 0 4px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.cs-item:hover {
+  border-color: #111;
+}
+.cs-syntax {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.cs-short {
+  font-size: 11px;
+  color: #777;
+}
+.cs-desc {
+  color: #333;
+}
+.cs-example {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: #555;
+  background: #f0f0f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: pre-wrap;
+}
+.cs-empty {
+  padding: 12px;
+  color: #777;
+}

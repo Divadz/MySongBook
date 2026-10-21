@@ -19,7 +19,7 @@ export type SongLine =
   | { kind: 'literal'; text: string }
   | { kind: 'comment'; text: string; style: CommentStyle };
 
-export type CommentStyle = 'plain' | 'italic' | 'box';
+export type CommentStyle = 'plain' | 'italic' | 'box' | 'highlight';
 
 export interface SectionBlock {
   kind: 'section';
@@ -60,6 +60,10 @@ export interface SongMeta {
   key?: string;
   tempo?: string;
   time?: string;
+  composer?: string;
+  lyricist?: string;
+  copyright?: string;
+  duration?: string;
   tags: string[];
   /** Directive {textsize:} du fichier, en points. */
   textsize?: number;
@@ -106,8 +110,9 @@ function readTags(source: string): string[] {
     .filter(Boolean);
 }
 
+/** @param name nom ou alternative regex (« columns|col ») */
 function readNumberDirective(source: string, name: string): number | undefined {
-  const m = new RegExp(`\\{\\s*${name}\\s*:\\s*(\\d+)\\s*\\}`, 'i').exec(source);
+  const m = new RegExp(`\\{\\s*(?:${name})\\s*:\\s*(\\d+)\\s*\\}`, 'i').exec(source);
   return m ? parseInt(m[1], 10) : undefined;
 }
 
@@ -132,6 +137,18 @@ const COMMENT_STYLES: Record<string, CommentStyle> = {
   comment: 'plain',
   comment_italic: 'italic',
   comment_box: 'box',
+  highlight: 'highlight',
+};
+
+/** Formes courtes que ChordSheetJS ne normalise pas. */
+const ALIASES: Record<string, string> = {
+  ci: 'comment_italic',
+  cb: 'comment_box',
+  np: 'new_page',
+  new_physical_page: 'new_page',
+  npp: 'new_page',
+  colb: 'column_break',
+  col: 'columns',
 };
 
 /**
@@ -153,9 +170,13 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
     key: metaString(song, 'key'),
     tempo: metaString(song, 'tempo'),
     time: metaString(song, 'time'),
+    composer: metaString(song, 'composer'),
+    lyricist: metaString(song, 'lyricist'),
+    copyright: metaString(song, 'copyright'),
+    duration: metaString(song, 'duration'),
     tags: readTags(cleaned),
     textsize: readNumberDirective(cleaned, 'textsize'),
-    columns: readNumberDirective(cleaned, 'columns'),
+    columns: readNumberDirective(cleaned, 'columns|col'),
   };
 
   const blocks: Block[] = [];
@@ -214,7 +235,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
 
     let handled = false;
     for (const tag of tags) {
-      const name = tag.name;
+      const name = ALIASES[tag.name] ?? tag.name;
       const value = tag.value ?? '';
       if (name === 'image') {
         closeSection();
@@ -248,7 +269,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
       ensureSection().lines.push({ kind: 'literal', text: literals.map((l) => l.string).join('') });
     } else if (pairs.length > 0) {
       const clean = pairs
-        .map((p) => ({ chords: p.chords.trim(), lyrics: p.lyrics ?? '' }))
+        .map((p) => ({ chords: p.chords.trim() || (p.annotation ?? '').trim(), lyrics: p.lyrics ?? '' }))
         .filter((p) => p.chords !== '' || p.lyrics !== '');
       if (clean.length === 0) continue;
       const chordsOnly = clean.every((p) => p.lyrics.trim() === '');

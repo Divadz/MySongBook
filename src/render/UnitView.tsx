@@ -22,6 +22,7 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
     case 'title': {
       const m = unit.meta;
       const metaParts = [m.artist, m.key && `Tonalité : ${m.key}`, m.tempo && `${m.tempo} bpm`, m.time].filter(Boolean);
+      const credits = [m.composer && `Musique : ${m.composer}`, m.lyricist && `Paroles : ${m.lyricist}`].filter(Boolean);
       return (
         <div className="u-title">
           <div className="title" style={{ fontSize: `${settings.titleSize * scale}pt` }}>
@@ -35,6 +36,16 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
           {metaParts.length > 0 && (
             <div className="meta" style={{ fontSize: `${settings.metaSize * scale}pt` }}>
               {metaParts.join('  ·  ')}
+            </div>
+          )}
+          {credits.length > 0 && (
+            <div className="meta" style={{ fontSize: `${settings.metaSize * scale}pt` }}>
+              {credits.join('  ·  ')}
+            </div>
+          )}
+          {m.copyright && (
+            <div className="copyright" style={{ fontSize: `${settings.metaSize * 0.85 * scale}pt` }}>
+              © {m.copyright}
             </div>
           )}
         </div>

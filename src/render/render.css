@@ -121,3 +121,12 @@
 .u-abc svg {
   display: block;
 }
+
+.u-comment.highlight {
+  background: #d9d9d9;
+  padding: 0.5mm 1.5mm;
+  display: inline-block;
+}
+.u-title .copyright {
+  font-style: italic;
+}

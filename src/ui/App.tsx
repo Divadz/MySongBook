@@ -1,7 +1,9 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { parseSong, type SongModel } from '../core/song';
 import { defaultDeviceSettings, defaultRenderSettings, type RenderSettings } from '../core/settings';
 import { SongPages } from '../render/SongPages';
+import { CheatSheet } from './CheatSheet';
+import type { DirectiveHelp } from './directives';
 import './app.css';
 
 interface SampleEntry {
@@ -27,6 +29,18 @@ export function App() {
   const [dirty, setDirty] = useState(false);
   const [editorWidth, setEditorWidth] = useState(50); // en % de la zone de travail
   const lastGood = useRef<SongModel | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  /** Position du curseur à rétablir après une insertion. */
+  const pendingCaret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const ta = editorRef.current;
+    if (pendingCaret.current === null || !ta) return;
+    const caret = pendingCaret.current;
+    pendingCaret.current = null;
+    ta.focus();
+    ta.setSelectionRange(caret, caret);
+  }, [source]);
 
   useEffect(() => {
     fetch('/samples/index.json')
@@ -102,6 +116,11 @@ export function App() {
         downloadRef.current();
         return;
       }
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setShowHelp((h) => !h);
+        return;
+      }
       const target = e.target as HTMLElement | null;
       if (target && /^(TEXTAREA|INPUT|SELECT)$/.test(target.tagName)) return;
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
@@ -128,6 +147,27 @@ export function App() {
   };
   const downloadRef = useRef(download);
   downloadRef.current = download;
+
+  /** Insère une directive au curseur ; la sélection éventuelle prend la place de « § ». */
+  const insertDirective = (d: DirectiveHelp) => {
+    const ta = editorRef.current;
+    const start = ta ? ta.selectionStart : source.length;
+    const end = ta ? ta.selectionEnd : source.length;
+    const selected = source.slice(start, end);
+    let text = d.snippet;
+    const marker = text.indexOf('§');
+    text = text.replace('§', selected);
+    let prefix = '';
+    let suffix = '';
+    if (d.ownLine) {
+      if (start > 0 && source[start - 1] !== '\n') prefix = '\n';
+      if (end < source.length && source[end] !== '\n') suffix = '\n';
+    }
+    const next = source.slice(0, start) + prefix + text + suffix + source.slice(end);
+    setSource(next);
+    setDirty(true);
+    pendingCaret.current = start + prefix.length + (marker >= 0 ? marker + selected.length : text.length);
+  };
 
   const startDrag = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -223,6 +263,11 @@ export function App() {
               Enregistrer
             </button>
           )}
+          {mode === 'edit' && (
+            <button className={showHelp ? 'toggle on' : 'toggle'} onClick={() => setShowHelp((h) => !h)} title="Pense-bête des directives (F1)">
+              Directives
+            </button>
+          )}
           <span className="spacer" />
           <span>Tonalité {song?.meta.key ?? '?'}</span>
           <button onClick={() => setExtraTranspose((t) => t - 1)} title="Transposer d'un demi-ton vers le bas">
@@ -248,7 +293,9 @@ export function App() {
         <div className="workspace" ref={workspaceRef}>
           {mode === 'edit' && (
             <div className="editor-pane" style={{ width: `${editorWidth}%` }}>
+              <div className="editor-row">
               <textarea
+                ref={editorRef}
                 className="editor"
                 value={source}
                 spellCheck={false}
@@ -257,6 +304,8 @@ export function App() {
                   setDirty(true);
                 }}
               />
+              {showHelp && <CheatSheet onInsert={insertDirective} onClose={() => setShowHelp(false)} />}
+              </div>
               {parsed.error && <div className="editor-error">Syntaxe : {parsed.error}</div>}
             </div>
           )}
