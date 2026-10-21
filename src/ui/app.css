@@ -286,7 +286,7 @@ body,
 }
 
 .sidebar.wide {
-  width: 400px;
+  width: 440px;
 }
 .sidebar-button {
   margin-top: 12px;
@@ -361,6 +361,9 @@ body,
 }
 .ds-toggle.italic {
   font-style: italic;
+}
+.ds-toggle.underline {
+  text-decoration: underline;
 }
 .ds-toggle.on {
   background: #111;

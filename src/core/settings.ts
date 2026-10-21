@@ -8,6 +8,7 @@ export interface TextStyle {
   size: number;
   bold: boolean;
   italic: boolean;
+  underline: boolean;
   /** Décalage à droite, en em (largeur d'environ un caractère à la taille du bloc). */
   indent: number;
 }
@@ -112,13 +113,19 @@ export interface DeviceSettings {
   fontScale: number;
 }
 
-const style = (size: number, bold = false, italic = false, indent = 0): TextStyle => ({ size, bold, italic, indent });
+const style = (size: number, bold = false, italic = false, indent = 0, underline = false): TextStyle => ({
+  size,
+  bold,
+  italic,
+  underline,
+  indent,
+});
 
 export const defaultRenderSettings: RenderSettings = {
   styles: {
     title: style(20, true),
     meta: style(10),
-    label: style(12, true),
+    label: style(12, true, false, 0, true),
     verse: style(12),
     chorus: style(12, true, false, 2),
     bridge: style(12, false, true, 2),
@@ -173,6 +180,7 @@ export function css(st: TextStyle, scale: number, withIndent = true): CSSPropert
     fontSize: `${st.size * scale}pt`,
     fontWeight: st.bold ? 700 : 400,
     fontStyle: st.italic ? 'italic' : 'normal',
+    textDecoration: st.underline ? 'underline' : 'none',
     marginLeft: withIndent ? `${st.indent}em` : undefined,
   };
 }

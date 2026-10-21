@@ -52,6 +52,7 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
             <th>Taille</th>
             <th title="Gras">G</th>
             <th title="Italique">I</th>
+            <th title="Souligné">S</th>
             <th title="Décalage à droite, en em : environ un caractère à la taille du bloc">Décalage</th>
           </tr>
         </thead>
@@ -83,6 +84,15 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
                     onClick={() => setStyle(key, { italic: !st.italic })}
                   >
                     I
+                  </button>
+                </td>
+                <td>
+                  <button
+                    className={st.underline ? 'ds-toggle on underline' : 'ds-toggle underline'}
+                    onClick={() => setStyle(key, { underline: !st.underline })}
+                    title="Souligné"
+                  >
+                    S
                   </button>
                 </td>
                 <td>
