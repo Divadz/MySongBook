@@ -124,6 +124,31 @@ Autres/Hallelujah.cho
 - Les chemins sont relatifs à `songs/`. Un morceau peut apparaître plusieurs fois.
 - Un morceau introuvable est signalé mais n'empêche pas de jouer le set.
 
+## Métadonnées d'un PDF (`.pdf.json`)
+
+```json
+{
+  "title": "Bohemian Rhapsody",
+  "artist": "Queen",
+  "key": "F",
+  "tags": ["ballade"],
+  "crop": { "top": 0.04, "left": 0.075, "width": 0.79, "height": 0.76 },
+  "zoom": 1.2
+}
+```
+
+- Tous les champs sont facultatifs ; sans fichier, le titre est le nom du PDF.
+- `crop` : zone affichée, en fraction de la page (repris de SongbookPro).
+
+## Migration depuis SongbookPro
+
+`npm run import:sbp -- "<sauvegarde.sbpbackup>" "<dossier>" [--merge "Ancien dossier=Nouveau"]` écrit la bibliothèque dans un dossier, sans jamais écraser un fichier existant, et un rapport dans `.mysongbook/import/rapport-sbpbackup.md`.
+
+- Un morceau rangé dans plusieurs dossiers SongbookPro va dans le premier.
+- Tonalité, tempo, mesure, zoom (`{textsize: 120%}`) passent en directives ; la transposition affichée (tonalité choisie moins le capo) devient `{transpose:}`.
+- La transposition propre à un set est abandonnée (la tonalité appartient au morceau) ; les écarts sont listés dans le rapport.
+- Les notes de set deviennent des lignes `#` ; un morceau supprimé devient une note « Morceau manquant ».
+
 ## Format des annotations (`.ink.json`)
 
 ```json
@@ -236,7 +261,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
-| IMP-01 | P1 | Script de migration : export SongbookPro (`.sbp` ou ChordPro) des deux appareils → arborescence `songs/`, dédoublonnage par titre et contenu, rapport des morceaux à vérifier |
+| IMP-01 | P1 | Script de migration : sauvegarde SongbookPro (`.sbpbackup`) des deux appareils → arborescence `songs/` et `sets/`, dédoublonnage par titre et contenu, rapport des morceaux à vérifier (`npm run import:sbp`). Fait le 2026-10-21 pour un appareil ; les annotations au stylet sont gardées brutes en attendant le format `.ink.json` |
 | IMP-02 | P2 | Import de fichiers `.cho`, `.txt`, PDF par « Ouvrir avec » et par glisser-déposer (PC) |
 | IMP-03 | P3 | Import d'images (photo de partition) comme morceau PDF |
 

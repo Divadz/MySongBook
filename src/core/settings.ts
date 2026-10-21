@@ -188,10 +188,11 @@ export function css(st: TextStyle, scale: number, withIndent = true): CSSPropert
 /**
  * La directive {textsize:} d'un morceau fixe la taille du couplet ; les
  * autres blocs de texte gardent leur proportion par rapport au couplet.
+ * En pourcentage ({textsize: 120%}), toutes ces tailles sont multipliées.
  */
-export function applyTextsize(settings: RenderSettings, textsize: number | undefined): RenderSettings {
-  if (!textsize || textsize <= 0) return settings;
-  const factor = textsize / settings.styles.verse.size;
+export function applyTextsize(settings: RenderSettings, textsize: number | undefined, textscale?: number): RenderSettings {
+  const factor = textscale && textscale > 0 ? textscale : textsize && textsize > 0 ? textsize / settings.styles.verse.size : 1;
+  if (factor === 1) return settings;
   const styles = { ...settings.styles };
   for (const k of ['label', 'verse', 'chorus', 'bridge', 'grid', 'tab', 'chords', 'comment'] as StyleKey[]) {
     styles[k] = { ...styles[k], size: Math.round(styles[k].size * factor * 2) / 2 };

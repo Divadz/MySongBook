@@ -5,3 +5,6 @@ android/app/build/
 *.local
 .tmp-test/
 fixtures/library/.mysongbook/
+# Sauvegardes SongbookPro : contenu personnel et paroles protégées
+*.sbpbackup
+*.sbp

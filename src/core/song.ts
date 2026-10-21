@@ -7,7 +7,7 @@
  * de ChordSheetJS dépendent des lignes vides et fusionnent des sections
  * collées.
  */
-import { ChordProParser, ChordLyricsPair, Tag, Comment, Literal, Song } from 'chordsheetjs';
+import { ChordProParser, ChordLyricsPair, Tag, Comment, Literal, Song, Key } from 'chordsheetjs';
 
 export interface ChordLyric {
   chords: string;
@@ -71,6 +71,8 @@ export interface SongMeta {
   tags: string[];
   /** Directive {textsize:} du fichier, en points. */
   textsize?: number;
+  /** Directive {textsize: 120%} : facteur appliqué aux tailles des réglages. */
+  textscale?: number;
   /** Directive {columns:} du fichier. */
   columns?: number;
 }
@@ -162,6 +164,12 @@ function readNumberDirective(source: string, name: string): number | undefined {
   return m ? parseInt(m[1], 10) : undefined;
 }
 
+/** {name: 120%} → 1.2 */
+function readPercentDirective(source: string, name: string): number | undefined {
+  const m = new RegExp(`\\{\\s*(?:${name})\\s*:\\s*(\\d+(?:[.,]\\d+)?)\\s*%\\s*\\}`, 'i').exec(source);
+  return m ? parseFloat(m[1].replace(',', '.')) / 100 : undefined;
+}
+
 function metaString(song: Song, name: string): string | undefined {
   const v = song.metadata.get(name);
   if (v === undefined || v === null) return undefined;
@@ -197,6 +205,43 @@ const ALIASES: Record<string, string> = {
   col: 'columns',
 };
 
+/** Un « [ » jamais refermé sur sa ligne ferait échouer tout le morceau : il est échappé et affiché tel quel. */
+function escapeStrayBrackets(source: string): string {
+  return source
+    .split('\n')
+    .map((line) => {
+      let out = '';
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '\\') {
+          out += line.slice(i, i + 2);
+          i++;
+        } else if (c === '[' && line.indexOf(']', i + 1) < 0) out += '\\[';
+        else out += c;
+      }
+      return out;
+    })
+    .join('\n');
+}
+
+/** Transposition ; un accord que ChordSheetJS ne sait pas transposer (« (REFRAIN) ») reste tel quel. */
+function transposeSong(song: Song, delta: number): Song {
+  try {
+    return song.transpose(delta);
+  } catch {
+    const key = Key.parse(metaString(song, 'key') ?? null);
+    const moved = song.mapItems((item) => {
+      if (!(item instanceof ChordLyricsPair)) return item;
+      try {
+        return item.transpose(delta);
+      } catch {
+        return item;
+      }
+    });
+    return key ? moved.changeMetadata({ key: key.transpose(delta).toString() }) : moved;
+  }
+}
+
 /**
  * Analyse un fichier ChordPro et construit le modèle de rendu.
  * @param source texte du fichier
@@ -207,9 +252,9 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
   const totalTranspose = fileTranspose + extraTranspose;
 
   const { source: plain, attributes: sectionAttrs } = extractSectionAttributes(cleaned);
-  let song = new ChordProParser().parse(plain);
+  let song = new ChordProParser().parse(escapeStrayBrackets(plain));
   let sectionIndex = 0;
-  if (totalTranspose !== 0) song = song.transpose(totalTranspose);
+  if (totalTranspose !== 0) song = transposeSong(song, totalTranspose);
 
   const meta: SongMeta = {
     title: metaString(song, 'title') ?? 'Sans titre',
@@ -224,6 +269,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
     duration: metaString(song, 'duration'),
     tags: readTags(cleaned),
     textsize: readNumberDirective(cleaned, 'textsize'),
+    textscale: readPercentDirective(cleaned, 'textsize'),
     columns: readNumberDirective(cleaned, 'columns|col'),
   };
 
@@ -318,7 +364,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
       ensureSection().lines.push({ kind: 'literal', text: literals.map((l) => l.string).join('') });
     } else if (pairs.length > 0) {
       const clean = pairs
-        .map((p) => ({ chords: p.chords.trim() || (p.annotation ?? '').trim(), lyrics: p.lyrics ?? '' }))
+        .map((p) => ({ chords: p.chords.trim() || (p.annotation ?? '').trim(), lyrics: (p.lyrics ?? '').replace(/\\\[/g, '[') }))
         .filter((p) => p.chords !== '' || p.lyrics !== '');
       if (clean.length === 0) continue;
       const chordsOnly = clean.every((p) => p.lyrics.trim() === '');

@@ -91,26 +91,38 @@ export function summarizeChordPro(path: string, text: string): SongEntry {
   };
 }
 
-function summarizePdf(path: string): SongEntry {
+/** Un PDF peut avoir un fichier voisin « .pdf.json » : titre, artiste, tonalité, tags, recadrage. */
+function summarizePdf(path: string, metaText?: string): SongEntry {
   const fileName = basename(path);
-  const title = fileName.replace(/\.pdf$/i, '');
+  let meta: { title?: string; artist?: string; key?: string; tags?: string[] } = {};
+  try {
+    if (metaText) meta = JSON.parse(metaText);
+  } catch {
+    /* fichier annexe illisible : on s'en passe */
+  }
+  const title = meta.title || fileName.replace(/\.pdf$/i, '');
+  const tags = Array.isArray(meta.tags) ? meta.tags.map(String) : [];
   return {
     path,
     folder: dirname(path.slice(SONGS_DIR.length)),
     fileName,
     kind: 'pdf',
     title,
-    tags: [],
-    searchText: normalizeText(title),
+    artist: meta.artist || undefined,
+    key: meta.key || undefined,
+    tags,
+    searchText: normalizeText(`${title} ${meta.artist ?? ''} ${tags.join(' ')}`),
   };
 }
 
 /** Parcourt songs/ et résume chaque morceau. */
 export async function scanLibrary(fs: LibraryFS): Promise<SongEntry[]> {
-  const paths = (await fs.list()).filter(isSongFile);
+  const all = await fs.list();
+  const present = new Set(all);
+  const paths = all.filter(isSongFile);
   const entries = await Promise.all(
     paths.map(async (p) => {
-      if (PDF_EXT.test(p)) return summarizePdf(p);
+      if (PDF_EXT.test(p)) return summarizePdf(p, present.has(`${p}.json`) ? await fs.readText(`${p}.json`).catch(() => undefined) : undefined);
       try {
         return summarizeChordPro(p, await fs.readText(p));
       } catch {

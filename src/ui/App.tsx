@@ -428,7 +428,7 @@ export function App() {
   // Le fichier peut imposer sa taille de police et ses colonnes.
   const effectiveSettings = useMemo<RenderSettings>(() => {
     if (!song) return settings;
-    const s = applyTextsize(settings, song.meta.textsize);
+    const s = { ...applyTextsize(settings, song.meta.textsize, song.meta.textscale) };
     if (song.meta.columns === 1 || song.meta.columns === 2) s.columns = song.meta.columns;
     return s;
   }, [song, settings]);
