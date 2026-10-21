@@ -114,3 +114,69 @@ body,
   transform-origin: top center;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
+
+.sidebar[hidden] {
+  display: none;
+}
+.toolbar .dirty {
+  color: #b00;
+}
+.toolbar button.toggle {
+  min-width: auto;
+  padding: 0 12px;
+  font-size: 14px;
+}
+.toolbar button.toggle.on {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.workspace {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.workspace .viewport {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.editor-pane {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+}
+.editor {
+  flex: 1 1 auto;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 12px 14px;
+  font-family: 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  color: #111;
+}
+.editor-error {
+  padding: 6px 12px;
+  background: #fff3f3;
+  border-top: 1px solid #e0b4b4;
+  color: #900;
+  font-size: 13px;
+}
+.splitter {
+  flex: 0 0 10px;
+  cursor: col-resize;
+  background: #d4d4d4;
+  border-left: 1px solid #bbb;
+  border-right: 1px solid #bbb;
+}
+.splitter:hover {
+  background: #999;
+}

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { parseSong } from '../core/song';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { parseSong, type SongModel } from '../core/song';
 import { defaultDeviceSettings, defaultRenderSettings, type RenderSettings } from '../core/settings';
 import { SongPages } from '../render/SongPages';
 import './app.css';
@@ -22,6 +22,11 @@ export function App() {
   const [pageCount, setPageCount] = useState(1);
   const [scale, setScale] = useState(1);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<'read' | 'edit'>('read');
+  const [dirty, setDirty] = useState(false);
+  const [editorWidth, setEditorWidth] = useState(50); // en % de la zone de travail
+  const lastGood = useRef<SongModel | null>(null);
 
   useEffect(() => {
     fetch('/samples/index.json')
@@ -38,12 +43,26 @@ export function App() {
       .then((r) => r.text())
       .then((t) => {
         setSource(t);
+        setDirty(false);
         setExtraTranspose(0);
         setPage(0);
       });
   }, [file]);
 
-  const song = useMemo(() => (source ? parseSong(source, extraTranspose) : null), [source, extraTranspose]);
+  // Le rendu suit la frappe sans la ralentir.
+  const deferredSource = useDeferredValue(source);
+  const parsed = useMemo<{ song: SongModel | null; error: string | null }>(() => {
+    if (!deferredSource) return { song: null, error: null };
+    try {
+      const song = parseSong(deferredSource, extraTranspose);
+      lastGood.current = song;
+      return { song, error: null };
+    } catch (e) {
+      // Pendant la frappe le texte peut être momentanément invalide : on garde le dernier rendu correct.
+      return { song: lastGood.current, error: (e as Error).message };
+    }
+  }, [deferredSource, extraTranspose]);
+  const song = parsed.song;
 
   // Le fichier peut imposer sa taille de police et ses colonnes.
   const effectiveSettings = useMemo<RenderSettings>(() => {
@@ -78,6 +97,13 @@ export function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        downloadRef.current();
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target && /^(TEXTAREA|INPUT|SELECT)$/.test(target.tagName)) return;
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         next();
@@ -89,6 +115,38 @@ export function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [next, prev]);
+
+  // Pas encore d'accès aux fichiers : la sauvegarde télécharge le .cho modifié.
+  const download = () => {
+    const blob = new Blob([source], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = file ?? 'morceau.cho';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setDirty(false);
+  };
+  const downloadRef = useRef(download);
+  downloadRef.current = download;
+
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const ws = workspaceRef.current;
+    if (!ws) return;
+    const rect = ws.getBoundingClientRect();
+    const move = (ev: MouseEvent) => {
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setEditorWidth(Math.min(80, Math.max(20, pct)));
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      document.body.style.cursor = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
 
   const onPageCount = useCallback((n: number) => {
     setPageCount(n);
@@ -106,7 +164,7 @@ export function App() {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <aside className="sidebar" hidden={mode === 'edit'}>
         <h1>MySongBook</h1>
         <div className="sidebar-title">Échantillons</div>
         <ul className="songlist">
@@ -153,7 +211,18 @@ export function App() {
 
       <main className="main">
         <div className="toolbar">
-          <span className="song-title">{song?.meta.title ?? '…'}</span>
+          <span className="song-title">
+            {song?.meta.title ?? '…'}
+            {dirty && <span className="dirty" title="Modifications non enregistrées"> ●</span>}
+          </span>
+          <button className={mode === 'edit' ? 'toggle on' : 'toggle'} onClick={() => setMode((m) => (m === 'edit' ? 'read' : 'edit'))}>
+            {mode === 'edit' ? 'Fermer l’éditeur' : 'Éditer'}
+          </button>
+          {mode === 'edit' && (
+            <button className="toggle" onClick={download} title="Télécharger le fichier (Ctrl+S)">
+              Enregistrer
+            </button>
+          )}
           <span className="spacer" />
           <span>Tonalité {song?.meta.key ?? '?'}</span>
           <button onClick={() => setExtraTranspose((t) => t - 1)} title="Transposer d'un demi-ton vers le bas">
@@ -176,12 +245,29 @@ export function App() {
             ▶
           </button>
         </div>
+        <div className="workspace" ref={workspaceRef}>
+          {mode === 'edit' && (
+            <div className="editor-pane" style={{ width: `${editorWidth}%` }}>
+              <textarea
+                className="editor"
+                value={source}
+                spellCheck={false}
+                onChange={(e) => {
+                  setSource(e.target.value);
+                  setDirty(true);
+                }}
+              />
+              {parsed.error && <div className="editor-error">Syntaxe : {parsed.error}</div>}
+            </div>
+          )}
+          {mode === 'edit' && <div className="splitter" onMouseDown={startDrag} />}
         <div className="viewport" ref={viewportRef} onClick={onViewportClick}>
           {song && (
             <div className="page-scaler" style={{ transform: `scale(${scale})` }}>
               <SongPages song={song} settings={effectiveSettings} device={device} page={page} onPageCount={onPageCount} />
             </div>
           )}
+        </div>
         </div>
       </main>
     </div>
