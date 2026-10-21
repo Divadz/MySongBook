@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { parseSong, type SongModel } from '../core/song';
-import { defaultDeviceSettings, defaultRenderSettings, type RenderSettings } from '../core/settings';
+import { applyTextsize, defaultDeviceSettings, loadRenderSettings, saveRenderSettings, type RenderSettings } from '../core/settings';
+import { DisplaySettings } from './DisplaySettings';
 import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
 import type { DirectiveHelp } from './directives';
@@ -18,7 +19,9 @@ export function App() {
   const [file, setFile] = useState<string | null>(null);
   const [source, setSource] = useState<string>('');
   const [extraTranspose, setExtraTranspose] = useState(0);
-  const [settings, setSettings] = useState<RenderSettings>(defaultRenderSettings);
+  const [settings, setSettings] = useState<RenderSettings>(loadRenderSettings);
+  const [showSettings, setShowSettings] = useState(false);
+  useEffect(() => saveRenderSettings(settings), [settings]);
   const [device] = useState(defaultDeviceSettings);
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
@@ -81,11 +84,7 @@ export function App() {
   // Le fichier peut imposer sa taille de police et ses colonnes.
   const effectiveSettings = useMemo<RenderSettings>(() => {
     if (!song) return settings;
-    const s = { ...settings };
-    if (song.meta.textsize) {
-      s.lyricsSize = song.meta.textsize;
-      s.chordSize = song.meta.textsize;
-    }
+    const s = applyTextsize(settings, song.meta.textsize);
     if (song.meta.columns === 1 || song.meta.columns === 2) s.columns = song.meta.columns;
     return s;
   }, [song, settings]);
@@ -200,11 +199,15 @@ export function App() {
     else if (x > 0.67) next();
   };
 
-  const update = (patch: Partial<RenderSettings>) => setSettings((s) => ({ ...s, ...patch }));
 
   return (
     <div className="app">
-      <aside className="sidebar" hidden={mode === 'edit'}>
+      {showSettings && (
+        <aside className="sidebar wide">
+          <DisplaySettings settings={settings} onChange={setSettings} onClose={() => setShowSettings(false)} />
+        </aside>
+      )}
+      <aside className="sidebar" hidden={mode === 'edit' || showSettings}>
         <h1>MySongBook</h1>
         <div className="sidebar-title">Échantillons</div>
         <ul className="songlist">
@@ -214,39 +217,9 @@ export function App() {
             </li>
           ))}
         </ul>
-        <div className="sidebar-title">Rendu</div>
-        <label>
-          Paroles {effectiveSettings.lyricsSize} pt
-          <input
-            type="range"
-            min={8}
-            max={20}
-            value={settings.lyricsSize}
-            onChange={(e) => update({ lyricsSize: Number(e.target.value), chordSize: Number(e.target.value) })}
-          />
-        </label>
-        <label>
-          Interligne {settings.lineHeight.toFixed(2)}
-          <input
-            type="range"
-            min={1}
-            max={1.8}
-            step={0.05}
-            value={settings.lineHeight}
-            onChange={(e) => update({ lineHeight: Number(e.target.value) })}
-          />
-        </label>
-        <label>
-          Colonnes
-          <select value={settings.columns} onChange={(e) => update({ columns: Number(e.target.value) as 1 | 2 })}>
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-          </select>
-        </label>
-        <label>
-          <input type="checkbox" checked={settings.showChords} onChange={(e) => update({ showChords: e.target.checked })} />
-          Afficher les accords
-        </label>
+        <button className="sidebar-button" onClick={() => setShowSettings(true)}>
+          Réglages d’affichage…
+        </button>
       </aside>
 
       <main className="main">

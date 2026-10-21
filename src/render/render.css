@@ -45,11 +45,7 @@
   padding-bottom: 3mm;
 }
 .u-title .title {
-  font-weight: 700;
   line-height: 1.15;
-}
-.u-title .subtitle {
-  font-style: italic;
 }
 .u-title .meta {
   padding-top: 1mm;
@@ -74,7 +70,6 @@
   white-space: pre;
 }
 .u-line .chord {
-  font-weight: 700;
   line-height: 1.15;
   padding-right: 0.4em;
 }
@@ -126,7 +121,4 @@
   background: #d9d9d9;
   padding: 0.5mm 1.5mm;
   display: inline-block;
-}
-.u-title .copyright {
-  font-style: italic;
 }

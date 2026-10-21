@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef } from 'react';
 import abcjs from 'abcjs';
 import type { Unit } from './units';
 import type { DeviceSettings, RenderSettings } from '../core/settings';
-import { sectionStyle } from '../core/settings';
+import { css, sectionStyleKey } from '../core/settings';
+import type { SongMeta } from '../core/song';
 
 interface Props {
   unit: Unit;
@@ -16,88 +17,90 @@ interface Props {
 
 const MM_TO_PX = 96 / 25.4;
 
+/** Lignes de métadonnées à afficher sous le titre, selon les champs choisis. */
+function metaLines(m: SongMeta, show: RenderSettings['metaFields']): string[] {
+  const lines: string[] = [];
+  if (show.subtitle && m.subtitle) lines.push(m.subtitle);
+  const main = [
+    show.artist && m.artist,
+    show.key && m.key && `Tonalité : ${m.key}`,
+    show.tempo && m.tempo && `${m.tempo} bpm`,
+    show.time && m.time,
+    show.duration && m.duration && `Durée : ${m.duration}`,
+  ].filter(Boolean) as string[];
+  if (main.length) lines.push(main.join('  ·  '));
+  const credits = [
+    show.composer && m.composer && `Musique : ${m.composer}`,
+    show.lyricist && m.lyricist && `Paroles : ${m.lyricist}`,
+  ].filter(Boolean) as string[];
+  if (credits.length) lines.push(credits.join('  ·  '));
+  if (show.copyright && m.copyright) lines.push(`© ${m.copyright}`);
+  if (show.tags && m.tags.length) lines.push(`Tags : ${m.tags.join(', ')}`);
+  return lines;
+}
+
 export function UnitView({ unit, settings, device, columnWidthMm, transpose, onContentChange }: Props) {
   const scale = device.fontScale;
+  const S = settings.styles;
   switch (unit.kind) {
     case 'title': {
-      const m = unit.meta;
-      const metaParts = [m.artist, m.key && `Tonalité : ${m.key}`, m.tempo && `${m.tempo} bpm`, m.time].filter(Boolean);
-      const credits = [m.composer && `Musique : ${m.composer}`, m.lyricist && `Paroles : ${m.lyricist}`].filter(Boolean);
+      const lines = metaLines(unit.meta, settings.metaFields);
       return (
         <div className="u-title">
-          <div className="title" style={{ fontSize: `${settings.titleSize * scale}pt` }}>
-            {m.title}
+          <div className="title" style={css(S.title, scale)}>
+            {unit.meta.title}
           </div>
-          {m.subtitle && (
-            <div className="subtitle" style={{ fontSize: `${settings.metaSize * scale}pt` }}>
-              {m.subtitle}
-            </div>
-          )}
-          {metaParts.length > 0 && (
-            <div className="meta" style={{ fontSize: `${settings.metaSize * scale}pt` }}>
-              {metaParts.join('  ·  ')}
-            </div>
-          )}
-          {credits.length > 0 && (
-            <div className="meta" style={{ fontSize: `${settings.metaSize * scale}pt` }}>
-              {credits.join('  ·  ')}
-            </div>
-          )}
-          {m.copyright && (
-            <div className="copyright" style={{ fontSize: `${settings.metaSize * 0.85 * scale}pt` }}>
-              © {m.copyright}
+          {lines.length > 0 && (
+            <div className="meta" style={css(S.meta, scale)}>
+              {lines.map((l, i) => (
+                <div key={i}>{l}</div>
+              ))}
             </div>
           )}
         </div>
       );
     }
     case 'header': {
-      const st = sectionStyle(settings, unit.type);
+      const st = S[sectionStyleKey(unit.type)];
       return (
-        <div
-          className="u-header"
-          style={{ fontSize: `${settings.lyricsSize * scale}pt`, marginLeft: `${st.indent}mm` }}
-        >
+        <div className="u-header" style={{ ...css(st, scale), fontWeight: 700, fontStyle: 'normal' }}>
           {unit.label}
         </div>
       );
     }
     case 'line': {
-      const st = sectionStyle(settings, unit.type);
-      const lineStyle: React.CSSProperties = {
-        fontSize: `${settings.lyricsSize * scale}pt`,
-        lineHeight: settings.lineHeight,
-        marginLeft: `${st.indent}mm`,
-        fontWeight: st.bold ? 700 : 400,
-        fontStyle: st.italic ? 'italic' : 'normal',
-        paddingBottom: unit.last ? `${settings.lyricsSize * 0.6 * scale}pt` : 0,
-      };
+      const st = S[sectionStyleKey(unit.type)];
       const line = unit.line;
+      const spacing: React.CSSProperties = {
+        lineHeight: settings.lineHeight,
+        paddingBottom: unit.last ? `${st.size * 0.6 * scale}pt` : 0,
+      };
       if (line.kind === 'literal') {
+        // Grilles et tablatures : chasse fixe, sans gras ni italique.
         return (
-          <pre className="u-literal" style={lineStyle}>
+          <pre className="u-literal" style={{ ...css(st, scale), fontWeight: 400, fontStyle: 'normal', ...spacing }}>
             {line.text}
           </pre>
         );
       }
       if (line.kind === 'comment') {
         return (
-          <div className={`u-comment ${line.style}`} style={lineStyle}>
+          <div className={`u-comment ${line.style}`} style={{ ...css(S.comment, scale), ...spacing }}>
             {line.text}
           </div>
         );
       }
       if (!settings.showChords && line.chordsOnly) return <div style={{ height: 0 }} />;
       return (
-        <div className={`u-line ${line.chordsOnly ? 'chords-only' : ''}`} style={lineStyle}>
+        <div className={`u-line ${line.chordsOnly ? 'chords-only' : ''}`} style={{ ...css(st, scale), ...spacing }}>
           {line.items.map((it, i) => (
             <span className="pair" key={i}>
               {settings.showChords && (
-                <span className="chord" style={{ fontSize: `${settings.chordSize * scale}pt` }}>
+                <span className="chord" style={css(S.chords, scale, false)}>
                   {it.chords || ' '}
                 </span>
               )}
-              <span className="lyrics">{it.lyrics || (settings.showChords ? '' : '')}</span>
+              <span className="lyrics">{it.lyrics}</span>
             </span>
           ))}
         </div>
@@ -111,7 +114,7 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
           widthPx={columnWidthMm * MM_TO_PX}
           transpose={transpose}
           scale={scale}
-          labelSize={settings.lyricsSize * scale}
+          labelSize={S.verse.size * scale}
         />
       );
     case 'image': {
@@ -124,7 +127,7 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
     }
     case 'comment':
       return (
-        <div className={`u-comment block ${unit.style}`} style={{ fontSize: `${settings.lyricsSize * scale}pt` }}>
+        <div className={`u-comment block ${unit.style}`} style={css(S.comment, scale)}>
           {unit.text}
         </div>
       );

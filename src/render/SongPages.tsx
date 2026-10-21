@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { SongModel } from '../core/song';
 import type { DeviceSettings, RenderSettings } from '../core/settings';
-import { sectionStyle } from '../core/settings';
+import { showSectionLabel } from '../core/settings';
 import { buildUnits, paginate, type Layout, type Unit } from './units';
 import { UnitView } from './UnitView';
 import './render.css';
@@ -29,7 +29,7 @@ export function SongPages({ song, settings, device, page, onPageCount }: Props) 
   const columnWidthMm = (innerW - settings.columnGap * (columns - 1)) / columns;
 
   const units = useMemo(
-    () => buildUnits(song.meta, song.blocks, (type) => sectionStyle(settings, type).showLabel),
+    () => buildUnits(song.meta, song.blocks, (type) => showSectionLabel(settings, type)),
     [song, settings],
   );
 

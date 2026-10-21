@@ -284,3 +284,126 @@ body,
   padding: 12px;
   color: #777;
 }
+
+.sidebar.wide {
+  width: 400px;
+}
+.sidebar-button {
+  margin-top: 12px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.display-settings {
+  font-size: 13px;
+}
+.ds-head {
+  display: flex;
+  align-items: center;
+}
+.ds-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 16px;
+}
+.display-settings h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin: 16px 0 6px;
+}
+.ds-styles {
+  border-collapse: collapse;
+  width: 100%;
+}
+.ds-styles th {
+  font-weight: 400;
+  color: #666;
+  font-size: 11px;
+  text-align: left;
+  padding: 0 4px 4px;
+}
+.ds-styles td {
+  padding: 3px 4px;
+  white-space: nowrap;
+}
+.ds-name {
+  font-weight: 600;
+}
+.ds-styles input[type='number'] {
+  width: 52px;
+  padding: 3px 4px;
+  font-size: 13px;
+}
+.ds-unit {
+  color: #777;
+  font-size: 11px;
+  margin-left: 2px;
+}
+.ds-na {
+  color: #aaa;
+}
+.ds-toggle {
+  width: 28px;
+  height: 26px;
+  border: 1px solid #999;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: Georgia, serif;
+}
+.ds-toggle.bold {
+  font-weight: 700;
+}
+.ds-toggle.italic {
+  font-style: italic;
+}
+.ds-toggle.on {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+.ds-checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+.ds-checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-direction: row;
+}
+.ds-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ds-rows label {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.ds-rows label.ds-inline {
+  justify-content: flex-start;
+  gap: 6px;
+}
+.ds-rows input[type='number'] {
+  width: 64px;
+}
+.ds-note {
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ds-reset {
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  cursor: pointer;
+}
