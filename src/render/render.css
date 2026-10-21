@@ -72,7 +72,7 @@
 .u-line {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 .u-line .pair {
   display: inline-flex;
@@ -88,6 +88,10 @@
 }
 .u-line .lyrics {
   min-height: 1em;
+}
+/* Paroles vides (accord en fin de ligne) : même hauteur qu'une ligne de texte. */
+.u-line .lyrics:empty::before {
+  content: '\200b';
 }
 .u-line .lyrics .gap {
   display: inline-block;
