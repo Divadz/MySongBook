@@ -571,3 +571,261 @@ body,
   font-size: 13px;
   padding: 8px;
 }
+
+.sidebar-tabs {
+  display: flex;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.sidebar-tabs button {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.sidebar-tabs button.on {
+  background: #111;
+  color: #fff;
+}
+
+.sets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.sets-tools {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+.sets-tools .spacer,
+.set-actions .spacer {
+  flex: 1;
+}
+.set-list,
+.set-items,
+.set-add ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.set-list {
+  overflow: auto;
+}
+.set-list li {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.set-list li:hover {
+  background: #f0f0f0;
+}
+.set-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lib-icon.pinned {
+  border-color: #111;
+  background: #eee;
+}
+.pin {
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: 0.25;
+  font-size: 14px;
+}
+.pin.on {
+  opacity: 1;
+}
+.set-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.set-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 2px;
+  min-width: 0;
+}
+.set-title .lib-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+.set-edit-head {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.set-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.set-actions button {
+  flex: 1;
+  white-space: nowrap;
+  padding: 5px 6px;
+  border: 1px solid #bbb;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.set-actions button.primary {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+.set-actions button.on {
+  border-color: #111;
+  background: #eee;
+}
+.set-actions button:disabled {
+  opacity: 0.4;
+}
+.set-confirm,
+.set-note-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #f4f4f4;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.set-confirm span,
+.set-note-edit span {
+  display: flex;
+  gap: 6px;
+}
+.set-confirm button.danger {
+  background: #a00;
+  color: #fff;
+  border: 1px solid #a00;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+.set-note-edit textarea {
+  font: inherit;
+  padding: 6px;
+}
+.set-add {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 40%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px;
+}
+.set-add ul {
+  overflow: auto;
+}
+.set-add li {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.set-add li:hover {
+  background: #f0f0f0;
+}
+.set-items {
+  overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.set-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+.set-item:hover {
+  background: #f6f6f6;
+}
+.set-item.active {
+  background: #111;
+  color: #fff;
+}
+.set-item.active .lib-sub {
+  color: #ccc;
+}
+.set-item.dragging {
+  border-color: #111;
+  background: #eee;
+  color: #111;
+}
+.set-item .handle {
+  cursor: grab;
+  touch-action: none;
+  padding: 4px 6px;
+  color: #999;
+  user-select: none;
+}
+.set-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  min-width: 0;
+}
+.set-item .num {
+  color: #888;
+  font-size: 12px;
+}
+.set-item.note .note-text {
+  font-style: italic;
+  font-size: 13px;
+}
+.item-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 14px;
+  padding: 2px 4px;
+}
+.item-btn:hover {
+  opacity: 1;
+}
+.toolbar .set-position {
+  font-size: 13px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  padding: 3px 4px 3px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+.set-exit {
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin-left: 4px;
+}

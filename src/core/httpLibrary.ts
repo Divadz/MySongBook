@@ -37,6 +37,11 @@ export class HttpLibrary implements LibraryFS {
     if (!r.ok) throw new Error(`Écriture impossible : ${path}`);
   }
 
+  async remove(path: string): Promise<void> {
+    const r = await fetch(this.url(path), { method: 'DELETE' });
+    if (!r.ok) throw new Error(`Suppression impossible : ${path}`);
+  }
+
   async exists(path: string): Promise<boolean> {
     const r = await fetch(this.url(path), { method: 'HEAD' });
     return r.ok;

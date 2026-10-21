@@ -21,7 +21,9 @@ import {
 } from '../core/library';
 import { fsAccessSupported, pickLibrary, rememberedLibrary, reopenLibrary } from '../core/fsAccess';
 import { HttpLibrary, devLibraryInfo } from '../core/httpLibrary';
+import { newSetFile, noteAsChordPro, scanSets, serializeSet, sortSets, type Setlist } from '../core/setlist';
 import { DisplaySettings } from './DisplaySettings';
+import { SetsPanel } from './SetsPanel';
 import { LibraryPanel } from './LibraryPanel';
 import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
@@ -44,8 +46,18 @@ export function App() {
   const [libError, setLibError] = useState<string | null>(null);
   const [samples, setSamples] = useState<SampleEntry[]>([]);
 
-  /** Morceau ouvert : chemin dans la bibliothèque, ou échantillon. */
-  const [current, setCurrent] = useState<{ kind: 'library' | 'sample'; path: string } | null>(null);
+  /** Élément affiché : morceau de la bibliothèque, échantillon, ou note de set. */
+  type Current = { kind: 'library' | 'sample'; path: string } | { kind: 'note'; path: string; text: string };
+  const [current, setCurrent] = useState<Current | null>(null);
+
+  // --- Sets -----------------------------------------------------------------
+  const [sets, setSets] = useState<Setlist[]>([]);
+  const [sidebarTab, setSidebarTab] = useState<'songs' | 'sets'>('songs');
+  const [openSet, setOpenSet] = useState<string | null>(null);
+  /** Set en cours de jeu et position dans le set. */
+  const [playing, setPlaying] = useState<{ file: string; index: number } | null>(null);
+  /** En reculant d'un morceau, on arrive sur sa dernière page. */
+  const wantLastPage = useRef(false);
   const [source, setSource] = useState<string>('');
   const [savedSource, setSavedSource] = useState<string>('');
   const dirty = source !== savedSource;
@@ -107,6 +119,7 @@ export function App() {
   const refresh = useCallback(async (lib: LibraryFS) => {
     try {
       setEntries(await scanLibrary(lib));
+      setSets(await scanSets(lib));
       setLibError(null);
     } catch (e) {
       setLibError((e as Error).message);
@@ -131,6 +144,7 @@ export function App() {
       return [] as SongEntry[];
     });
     setEntries(list);
+    setSets(await scanSets(lib).catch(() => [] as Setlist[]));
     const first = [...list].sort((a, b) => a.title.localeCompare(b.title, 'fr'))[0];
     if (first) setCurrent({ kind: 'library', path: first.path });
   };
@@ -148,6 +162,9 @@ export function App() {
     await saveIfNeeded();
     setLibrary(null);
     setEntries([]);
+    setSets([]);
+    setPlaying(null);
+    setOpenSet(null);
     settingsFromLibrary.current = false;
     setCurrent(samples.length ? { kind: 'sample', path: samples[0].file } : null);
   };
@@ -169,6 +186,7 @@ export function App() {
     if (!current) return;
     let cancelled = false;
     const load = async (): Promise<string> => {
+      if (current.kind === 'note') return noteAsChordPro(current.text);
       if (current.kind === 'sample') return (await fetch(`/samples/${current.path}`)).text();
       if (!library) return '';
       if (/\.pdf$/i.test(current.path)) return '';
@@ -182,6 +200,7 @@ export function App() {
         setExtraTranspose(0);
         setPage(0);
         lastGood.current = null;
+        setMode((m) => (current.kind === 'note' ? 'read' : m));
       })
       .catch((e) => !cancelled && setLibError((e as Error).message));
     return () => {
@@ -232,9 +251,69 @@ export function App() {
   };
 
   const select = async (target: { kind: 'library' | 'sample'; path: string }) => {
-    if (target.path === current?.path) return;
+    setPlaying(null);
+    if (target.path === current?.path && current.kind === target.kind) return;
     await saveIfNeeded();
+    wantLastPage.current = false;
     setCurrent(target);
+  };
+
+  // --- Sets : fichiers ------------------------------------------------------
+  const saveSet = async (set: Setlist) => {
+    if (!library) return;
+    setSets((list) => sortSets(list.map((s) => (s.file === set.file ? set : s))));
+    try {
+      await library.writeText(set.file, serializeSet(set));
+    } catch (e) {
+      flash(`Enregistrement du set impossible : ${(e as Error).message}`);
+    }
+  };
+
+  const createSet = async (title: string, date?: string, items: Setlist['items'] = []) => {
+    if (!library) return;
+    const set: Setlist = { file: await newSetFile(library, title, date), title, date, pinned: false, items };
+    try {
+      await library.writeText(set.file, serializeSet(set));
+      setSets((list) => sortSets([...list, set]));
+      setOpenSet(set.file);
+    } catch (e) {
+      flash(`Création du set impossible : ${(e as Error).message}`);
+    }
+  };
+
+  const deleteSet = async (set: Setlist) => {
+    if (!library) return;
+    try {
+      await library.remove(set.file);
+      setSets((list) => list.filter((s) => s.file !== set.file));
+      setOpenSet(null);
+      if (playing?.file === set.file) setPlaying(null);
+    } catch (e) {
+      flash(`Suppression impossible : ${(e as Error).message}`);
+    }
+  };
+
+  // --- Sets : lecture -------------------------------------------------------
+  const playItem = async (set: Setlist, index: number, edge: 'first' | 'last' = 'first') => {
+    const item = set.items[index];
+    if (!item) return;
+    await saveIfNeeded();
+    setPlaying({ file: set.file, index });
+    wantLastPage.current = edge === 'last';
+    if (item.kind === 'note') {
+      setCurrent({ kind: 'note', path: `${set.file}#${index}`, text: item.text });
+    } else {
+      const path = SONGS_DIR + item.path;
+      if (entries.some((e) => e.path === path)) setCurrent({ kind: 'library', path });
+      else setCurrent({ kind: 'note', path: `${set.file}#${index}`, text: `Morceau introuvable\n${item.path}` });
+    }
+  };
+
+  const playingSet = playing ? sets.find((s) => s.file === playing.file) : undefined;
+  const titleOf = (item: Setlist['items'][number] | undefined): string => {
+    if (!item) return '';
+    if (item.kind === 'note') return item.text.split('\n')[0];
+    return entries.find((e) => e.path === SONGS_DIR + item.path)?.title ?? item.path;
   };
 
   /** Écrit la transposition courante dans le fichier ({transpose:}). */
@@ -352,8 +431,25 @@ export function App() {
     return () => ro.disconnect();
   }, [device]);
 
-  const next = useCallback(() => setPage((p) => Math.min(p + 1, pageCount - 1)), [pageCount]);
-  const prev = useCallback(() => setPage((p) => Math.max(p - 1, 0)), []);
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const setNavRef = useRef<{ set?: Setlist; index: number }>({ index: 0 });
+  setNavRef.current = { set: playingSet, index: playing?.index ?? 0 };
+  const playItemRef = useRef(playItem);
+  playItemRef.current = playItem;
+
+  const next = useCallback(() => {
+    wantLastPage.current = false;
+    if (pageRef.current < pageCount - 1) return setPage(pageRef.current + 1);
+    const { set, index } = setNavRef.current;
+    if (set && index < set.items.length - 1) playItemRef.current(set, index + 1, 'first');
+  }, [pageCount]);
+  const prev = useCallback(() => {
+    wantLastPage.current = false;
+    if (pageRef.current > 0) return setPage(pageRef.current - 1);
+    const { set, index } = setNavRef.current;
+    if (set && index > 0) playItemRef.current(set, index - 1, 'last');
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -429,7 +525,7 @@ export function App() {
 
   const onPageCount = useCallback((n: number) => {
     setPageCount(n);
-    setPage((p) => Math.min(p, Math.max(0, n - 1)));
+    setPage((p) => (wantLastPage.current ? Math.max(0, n - 1) : Math.min(p, Math.max(0, n - 1))));
   }, []);
 
   const onViewportClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -451,15 +547,40 @@ export function App() {
       )}
       <aside className="sidebar" hidden={mode === 'edit' || showSettings}>
         {library ? (
-          <LibraryPanel
-            name={library.name}
-            entries={entries}
-            selected={current?.kind === 'library' ? current.path : null}
-            onSelect={(path) => select({ kind: 'library', path })}
-            onCreate={createSong}
-            onRefresh={() => refresh(library)}
-            onClose={closeLibrary}
-          />
+          <>
+            <div className="sidebar-tabs">
+              <button className={sidebarTab === 'songs' ? 'on' : ''} onClick={() => setSidebarTab('songs')}>
+                Morceaux
+              </button>
+              <button className={sidebarTab === 'sets' ? 'on' : ''} onClick={() => setSidebarTab('sets')}>
+                Sets
+              </button>
+            </div>
+            {sidebarTab === 'songs' ? (
+              <LibraryPanel
+                name={library.name}
+                entries={entries}
+                selected={current?.kind === 'library' && !playing ? current.path : null}
+                onSelect={(path) => select({ kind: 'library', path })}
+                onCreate={createSong}
+                onRefresh={() => refresh(library)}
+                onClose={closeLibrary}
+              />
+            ) : (
+              <SetsPanel
+                sets={sets}
+                entries={entries}
+                openFile={openSet}
+                onOpen={setOpenSet}
+                playing={playing}
+                onCreate={(title, date) => createSet(title, date)}
+                onChange={saveSet}
+                onDuplicate={(s) => createSet(`${s.title} (copie)`, s.date, s.items)}
+                onDelete={deleteSet}
+                onPlay={(s, i) => playItem(s, i, 'first')}
+              />
+            )}
+          </>
         ) : (
           <>
             <h1>MySongBook</h1>
@@ -507,7 +628,16 @@ export function App() {
             {song?.meta.title ?? currentEntry?.title ?? '…'}
             {dirty && <span className="dirty" title="Modifications non enregistrées"> ●</span>}
           </span>
-          {!isPdf && (
+          {playingSet && playing && (
+            <span className="set-position" title={playingSet.title}>
+              {playingSet.title} · {playing.index + 1}/{playingSet.items.length}
+              {playing.index < playingSet.items.length - 1 && <> · ensuite : {titleOf(playingSet.items[playing.index + 1])}</>}
+              <button className="set-exit" onClick={() => setPlaying(null)} title="Quitter le set">
+                ×
+              </button>
+            </span>
+          )}
+          {!isPdf && current?.kind !== 'note' && (
             <button className={mode === 'edit' ? 'toggle on' : 'toggle'} onClick={() => setMode((m) => (m === 'edit' ? 'read' : 'edit'))}>
               {mode === 'edit' ? 'Fermer l’éditeur' : 'Éditer'}
             </button>
@@ -524,6 +654,8 @@ export function App() {
           )}
           {notice && <span className="notice">{notice}</span>}
           <span className="spacer" />
+          {current?.kind !== 'note' && (
+          <>
           <span>Tonalité {song?.meta.key ?? '?'}</span>
           <button onClick={() => setExtraTranspose((t) => t - 1)} title="Transposer d'un demi-ton vers le bas">
             ♭
@@ -539,14 +671,16 @@ export function App() {
               Garder
             </button>
           )}
+          </>
+          )}
           <span className="spacer" />
-          <button onClick={prev} disabled={page === 0}>
+          <button onClick={prev} disabled={page === 0 && !(playingSet && playing && playing.index > 0)}>
             ◀
           </button>
           <span>
             Page {Math.min(page + 1, pageCount)} / {pageCount}
           </span>
-          <button onClick={next} disabled={page >= pageCount - 1}>
+          <button onClick={next} disabled={page >= pageCount - 1 && !(playingSet && playing && playing.index < playingSet.items.length - 1)}>
             ▶
           </button>
         </div>

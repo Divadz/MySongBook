@@ -12,6 +12,8 @@ export interface LibraryFS {
   writeText(path: string, text: string): Promise<void>;
   readBlob(path: string): Promise<Blob>;
   exists(path: string): Promise<boolean>;
+  /** Supprime un fichier (pas de corbeille : Google Drive garde l'historique). */
+  remove(path: string): Promise<void>;
 }
 
 export type SongKind = 'chordpro' | 'pdf';

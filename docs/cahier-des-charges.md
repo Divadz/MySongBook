@@ -213,12 +213,12 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
-| SET-01 | P1 | Lister les sets, épinglés en tête puis par date décroissante |
-| SET-02 | P1 | Créer un set (nom, date facultative), ajouter des morceaux par recherche, réordonner par glisser-déposer, retirer |
-| SET-03 | P1 | Jouer un set : enchaînement des morceaux, pages de notes intercalées |
-| SET-04 | P2 | Notes intercalées éditables ; épingler / désépingler ; dupliquer ; supprimer |
+| SET-01 | P1 | Lister les sets, épinglés en tête puis par date décroissante. Fait le 2026-10-21 |
+| SET-02 | P1 | Créer un set (nom, date facultative), ajouter des morceaux par recherche, réordonner par glisser-déposer, retirer. Fait le 2026-10-21 |
+| SET-03 | P1 | Jouer un set : enchaînement des morceaux, pages de notes intercalées. Fait le 2026-10-21 |
+| SET-04 | P2 | Notes intercalées éditables ; épingler / désépingler ; dupliquer ; supprimer. Fait le 2026-10-21 |
 | SET-05 | P2 | Ajouter le morceau affiché au set courant ou à un nouveau set |
-| SET-06 | P3 | Signaler les morceaux manquants dans un set |
+| SET-06 | P3 | Signaler les morceaux manquants dans un set. Fait le 2026-10-21 |
 
 ## Édition
 

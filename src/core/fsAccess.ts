@@ -68,6 +68,13 @@ class FsAccessLibrary implements LibraryFS {
     await w.close();
   }
 
+  async remove(path: string): Promise<void> {
+    const parts = path.split('/').filter(Boolean);
+    const name = parts.pop();
+    if (!name) throw new Error(`Chemin invalide : ${path}`);
+    await (await this.dir(parts, false)).removeEntry(name);
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await this.file(path, false);

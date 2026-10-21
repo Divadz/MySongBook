@@ -59,6 +59,10 @@ function devLibrary(): Plugin {
               return res.end();
             }
             if (req.method === 'HEAD') return res.end();
+            if (req.method === 'DELETE') {
+              fs.unlinkSync(full);
+              return res.end('ok');
+            }
             return res.end(fs.readFileSync(full));
           }
           res.statusCode = 404;
