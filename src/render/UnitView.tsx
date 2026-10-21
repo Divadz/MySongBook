@@ -29,6 +29,23 @@ function abcWidthPx(width: string | undefined, columnWidthMm: number): number {
 }
 
 /** Lignes de métadonnées à afficher sous le titre, selon les champs choisis. */
+/**
+ * Plusieurs espaces juste avant un accord servent à le placer (texte venu
+ * d'un « accords sur paroles » en police à chasse fixe) : chacune prend la
+ * largeur d'un caractère, pas celle, étroite, d'une espace proportionnelle.
+ * Les espaces suivies de paroles gardent leur largeur normale.
+ */
+function spacedLyrics(lyrics: string, beforeChord: boolean): React.ReactNode {
+  const m = beforeChord ? / {2,}$/.exec(lyrics) : null;
+  if (!m) return lyrics;
+  return (
+    <>
+      {lyrics.slice(0, m.index)}
+      <span className="gap" style={{ width: `${m[0].length * 0.55}em` }} />
+    </>
+  );
+}
+
 function metaLines(m: SongMeta, show: RenderSettings['metaFields']): string[] {
   const lines: string[] = [];
   if (show.subtitle && m.subtitle) lines.push(m.subtitle);
@@ -115,7 +132,7 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
                   {it.chords || ' '}
                 </span>
               )}
-              <span className="lyrics">{it.lyrics}</span>
+              <span className="lyrics">{spacedLyrics(it.lyrics, settings.showChords && !!line.items[i + 1]?.chords)}</span>
             </span>
           ))}
         </div>

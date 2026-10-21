@@ -89,6 +89,9 @@
 .u-line .lyrics {
   min-height: 1em;
 }
+.u-line .lyrics .gap {
+  display: inline-block;
+}
 
 .u-literal {
   margin: 0;
