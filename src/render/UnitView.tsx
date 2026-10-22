@@ -54,7 +54,7 @@ const barClass = (bar: string | undefined) =>
 function GridCellContent({ cell }: { cell: GridCell }) {
   if (cell.repeat) return <span className="gc-one gc-repeat">{cell.repeat}</span>;
   if (!cell.quarters) return cell.chords[0] ? <span className="gc-one">{cell.chords[0]}</span> : null;
-  const { lines, labels } = drawCell(cell.quarters);
+  const { lines, labels } = drawCell(cell.chords, cell.quarters);
   return (
     <>
       <svg className="gc-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>

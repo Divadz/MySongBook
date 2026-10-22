@@ -14,6 +14,9 @@
  *   C G7/B . .    triangle gauche seul : C, puis G7/B dans le reste
  *   C . . G7/B    triangle droit seul : C, puis G7/B à droite
  *   C . G .       diagonale : C en haut à gauche, G en bas à droite
+ *   C G C .       C à gauche, G en haut, C dans la moitié en bas à droite
+ *
+ * Un accord réécrit ouvre une nouvelle zone, même s'il porte le même nom.
  *
  * Une mesure à 2 ou 3 temps, ou des accords collés par « ~ », se répartissent
  * de la même façon sur les quatre triangles.
@@ -22,8 +25,8 @@
 export interface GridCell {
   /** Accords de la mesure, dans l'ordre ; vide pour une mesure vide. */
   chords: string[];
-  /** Accord de chaque triangle : gauche, haut, bas, droite (temps 1 à 4). */
-  quarters?: [string, string, string, string];
+  /** Pour chaque triangle (gauche, haut, bas, droite = temps 1 à 4), index dans chords de l'accord joué. */
+  quarters?: Quarters;
   /** Répétition de la mesure précédente (« % ») ou des deux précédentes (« %% »). */
   repeat?: '%' | '%%';
 }
@@ -57,12 +60,14 @@ export function mapGridChords(text: string, fn: (chord: string) => string): stri
     .join('');
 }
 
-/** Accord en cours à chaque quart de mesure (gauche, haut, bas, droite). */
-function quarters(beats: (string | null)[]): [string, string, string, string] {
-  const active: string[] = [];
-  let chord = '';
-  for (const b of beats) active.push((chord = b ?? chord));
-  const at = (q: number) => active[Math.floor((q * beats.length) / 4)] || active.find(Boolean) || '';
+export type Quarters = [number, number, number, number];
+
+/** Accord en cours à chaque quart de mesure (gauche, haut, bas, droite), en index dans la liste des accords. */
+function quarters(beats: (string | null)[]): Quarters {
+  const active: number[] = [];
+  let index = -1;
+  for (const b of beats) active.push(b === null ? index : ++index);
+  const at = (q: number) => Math.max(0, active[Math.floor((q * beats.length) / 4)]);
   return [at(0), at(1), at(2), at(3)];
 }
 
@@ -95,7 +100,7 @@ export interface CellDrawing {
 }
 
 /** Dessin d'une case à plusieurs accords : traits et emplacement des noms. */
-export function drawCell(q: [string, string, string, string]): CellDrawing {
+export function drawCell(chords: string[], q: Quarters): CellDrawing {
   const lines = NEIGHBOURS.filter(([a, b]) => q[a] !== q[b]).map(([, , d]) => d);
   // Zones : triangles voisins portant le même accord.
   const zone = [0, 1, 2, 3];
@@ -105,7 +110,7 @@ export function drawCell(q: [string, string, string, string]): CellDrawing {
   for (let i = 0; i < 4; i++) groups.set(find(i), [...(groups.get(find(i)) ?? []), i]);
   const labels = [...groups.values()]
     .sort((x, y) => Math.min(...x) - Math.min(...y))
-    .map((g) => ({ chord: q[g[0]], place: PLACES[g.sort().join('')] ?? 'full' }));
+    .map((g) => ({ chord: chords[q[g[0]]], place: PLACES[g.sort().join('')] ?? 'full' }));
   return { lines, labels };
 }
 
