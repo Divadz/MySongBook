@@ -239,29 +239,21 @@
 
 /* --- Grilles en cases --------------------------------------------------------- */
 .grid-row {
-  display: flex;
+  display: grid;
   align-items: center;
-  gap: 0.6em;
   font-family: var(--msb-sans);
   font-size-adjust: var(--msb-cap);
   margin-top: -1px; /* les lignes d'une grille se touchent */
 }
 .grid-label {
-  flex: none;
-  width: 3em;
   overflow: hidden;
   white-space: nowrap;
-}
-.grid-cells {
-  display: flex;
-  min-width: 0;
+  padding-right: 0.6em;
 }
 .grid-cell {
   position: relative;
   box-sizing: border-box;
-  width: 5.6em;
   min-width: 0;
-  flex: 0 1 5.6em;
   height: 2.7em;
   border-top: 1px solid #000;
   border-bottom: 1px solid #000;
@@ -325,5 +317,6 @@
 .gc-part.t { left: 50%; top: 0.15em; transform: translateX(-50%); }
 .gc-part.b { left: 50%; bottom: 0.15em; transform: translateX(-50%); }
 .grid-comment {
-  flex: none;
+  padding-left: 0.6em;
+  white-space: nowrap;
 }

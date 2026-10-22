@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import abcjs from 'abcjs';
-import type { Unit } from './units';
+import type { GridLayout, Unit } from './units';
 import type { DeviceSettings, RenderSettings } from '../core/settings';
 import { css, sectionStyleKey } from '../core/settings';
 import type { SongMeta } from '../core/song';
@@ -79,21 +79,42 @@ function GridCellContent({ cell }: { cell: GridCell }) {
   );
 }
 
-function GridRowView({ row, margin, style }: { row: GridRow; margin: boolean; style: React.CSSProperties }) {
+/**
+ * Une ligne de grille. Toutes les lignes d'une grille ont les mêmes colonnes
+ * (marge, autant de cases que la ligne la plus longue, texte à droite) : les
+ * cases s'alignent d'une ligne à l'autre et le texte de droite (« x2 ») reste
+ * après la fin de la grille.
+ */
+function GridRowView({ row, layout, style }: { row: GridRow; layout: GridLayout; style: React.CSSProperties }) {
+  const columns = [
+    layout.label ? `${Math.max(2.5, layout.label * 0.62 + 0.6)}em` : '',
+    `repeat(${layout.cells}, minmax(0, 5.6em))`,
+    layout.comment ? `${layout.comment * 0.62 + 0.6}em` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const firstCell = layout.label ? 2 : 1;
   return (
-    <div className="grid-row" style={style}>
-      {margin && <span className="grid-label">{row.label}</span>}
-      <div className="grid-cells">
-        {row.cells.map((cell, i) => (
-          <div
-            key={i}
-            className={`grid-cell left-${barClass(row.bars[i])} ${i === row.cells.length - 1 ? `right-${barClass(row.bars[i + 1])}` : ''}`}
-          >
-            <GridCellContent cell={cell} />
-          </div>
-        ))}
-      </div>
-      {row.comment && <span className="grid-comment">{row.comment}</span>}
+    <div className="grid-row" style={{ ...style, gridTemplateColumns: columns }}>
+      {row.label && (
+        <span className="grid-label" style={{ gridColumn: 1 }}>
+          {row.label}
+        </span>
+      )}
+      {row.cells.map((cell, i) => (
+        <div
+          key={i}
+          style={{ gridColumn: firstCell + i }}
+          className={`grid-cell left-${barClass(row.bars[i])} ${i === row.cells.length - 1 ? `right-${barClass(row.bars[i + 1])}` : ''}`}
+        >
+          <GridCellContent cell={cell} />
+        </div>
+      ))}
+      {row.comment && (
+        <span className="grid-comment" style={{ gridColumn: -2 }}>
+          {row.comment}
+        </span>
+      )}
     </div>
   );
 }
@@ -161,7 +182,7 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       };
       if (line.kind === 'literal' && unit.type === 'grid') {
         const row = parseGridLine(line.text);
-        if (row) return <GridRowView row={row} margin={!!unit.gridMargin} style={{ ...css(st, scale), ...spacing }} />;
+        if (row && unit.grid) return <GridRowView row={row} layout={unit.grid} style={{ ...css(st, scale), ...spacing }} />;
       }
       if (line.kind === 'literal') {
         // Grilles et tablatures : chasse fixe.

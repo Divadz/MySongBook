@@ -15,13 +15,32 @@ export type Unit =
       line: SongLine;
       first: boolean;
       last: boolean;
-      /** Grille dont une ligne au moins a un texte en marge : toutes les lignes réservent la marge. */
-      gridMargin?: boolean;
+      /** Mise en page commune aux lignes d'une même grille, pour que les cases s'alignent. */
+      grid?: GridLayout;
     }
   | { id: string; kind: 'abc'; abc: string; label?: string; scale?: number; width?: string }
   | { id: string; kind: 'image'; src: string; width?: string }
   | { id: string; kind: 'comment'; text: string; style: CommentStyle }
   | { id: string; kind: 'break'; which: 'new_page' | 'column_break' };
+
+/** Colonnes d'une grille : marge gauche, cases, texte à droite (largeurs en caractères). */
+export interface GridLayout {
+  label: number;
+  cells: number;
+  comment: number;
+}
+
+function gridLayout(lines: SongLine[]): GridLayout {
+  const layout: GridLayout = { label: 0, cells: 0, comment: 0 };
+  for (const l of lines) {
+    const row = l.kind === 'literal' ? parseGridLine(l.text) : null;
+    if (!row) continue;
+    layout.label = Math.max(layout.label, row.label?.length ?? 0);
+    layout.cells = Math.max(layout.cells, row.cells.length);
+    layout.comment = Math.max(layout.comment, row.comment?.length ?? 0);
+  }
+  return layout;
+}
 
 export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: string) => boolean): Unit[] {
   const units: Unit[] = [{ id: 'title', kind: 'title', meta }];
@@ -31,8 +50,7 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
       case 'section': {
         const label = block.label ?? defaultLabel(block.type);
         if (label && showLabels(block.type)) units.push({ id: `${id}h`, kind: 'header', type: block.type, label });
-        const gridMargin =
-          block.type === 'grid' && block.lines.some((l) => l.kind === 'literal' && !!parseGridLine(l.text)?.label);
+        const grid = block.type === 'grid' ? gridLayout(block.lines) : undefined;
         block.lines.forEach((line, li) => {
           units.push({
             id: `${id}l${li}`,
@@ -41,7 +59,7 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
             line,
             first: li === 0,
             last: li === block.lines.length - 1,
-            gridMargin,
+            grid,
           });
         });
         break;
