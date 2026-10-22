@@ -238,12 +238,13 @@
 }
 
 /* --- Grilles en cases --------------------------------------------------------- */
+/* --hair : un pixel d'écran, quelle que soit la mise à l'échelle de la page (sinon un trait fin peut disparaître). */
 .grid-row {
   display: grid;
   align-items: center;
   font-family: var(--msb-sans);
   font-size-adjust: var(--msb-cap);
-  margin-top: -1px; /* les lignes d'une grille se touchent */
+  margin-top: calc(-1 * var(--hair, 1px)); /* les lignes d'une grille se touchent */
 }
 .grid-label {
   overflow: hidden;
@@ -255,19 +256,19 @@
   box-sizing: border-box;
   min-width: 0;
   height: 2.7em;
-  border-top: 1px solid #000;
-  border-bottom: 1px solid #000;
-  border-left: 1px solid #000;
+  border-top: var(--hair, 1px) solid #000;
+  border-bottom: var(--hair, 1px) solid #000;
+  border-left: var(--hair, 1px) solid #000;
 }
-.grid-cell.left-double { border-left: 3px double #000; }
-.grid-cell.left-end { border-left: 3px solid #000; }
-.grid-cell.right-single { border-right: 1px solid #000; }
-.grid-cell.right-double { border-right: 3px double #000; }
-.grid-cell.right-end { border-right: 4px solid #000; }
+.grid-cell.left-double { border-left: calc(3 * var(--hair, 1px)) double #000; }
+.grid-cell.left-end { border-left: calc(3 * var(--hair, 1px)) solid #000; }
+.grid-cell.right-single { border-right: var(--hair, 1px) solid #000; }
+.grid-cell.right-double { border-right: calc(3 * var(--hair, 1px)) double #000; }
+.grid-cell.right-end { border-right: calc(4 * var(--hair, 1px)) solid #000; }
 .grid-cell.left-rep-start,
-.grid-cell.left-rep-both { border-left: 3px double #000; }
+.grid-cell.left-rep-both { border-left: calc(3 * var(--hair, 1px)) double #000; }
 .grid-cell.right-rep-end,
-.grid-cell.right-rep-both { border-right: 3px double #000; }
+.grid-cell.right-rep-both { border-right: calc(3 * var(--hair, 1px)) double #000; }
 /* Points de reprise */
 .grid-cell.left-rep-start::before,
 .grid-cell.left-rep-both::before,

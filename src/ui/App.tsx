@@ -581,6 +581,7 @@ export function App() {
   };
 
   const isPdf = currentEntry?.kind === 'pdf';
+  const scalerStyle = { transform: `scale(${scale})`, '--hair': `${Math.max(1, 1 / scale)}px` } as React.CSSProperties;
   const pageCrop = useMemo(() => cropForPage(pdfMeta, page), [pdfMeta, page]);
   const canKeepTranspose = extraTranspose !== 0 && library !== null && current?.kind === 'library';
 
@@ -770,7 +771,7 @@ export function App() {
             {isPdf ? (
               library &&
               current?.kind === 'library' && (
-                <div className="page-scaler" style={{ transform: `scale(${scale})` }}>
+                <div className="page-scaler" style={scalerStyle}>
                   <PdfView
                     library={library}
                     path={current.path}
@@ -786,7 +787,7 @@ export function App() {
               )
             ) : (
               renderSong && (
-                <div className="page-scaler" style={{ transform: `scale(${scale})` }}>
+                <div className="page-scaler" style={scalerStyle}>
                   <SongPages song={renderSong} settings={effectiveSettings} device={device} page={page} onPageCount={onPageCount} />
                 </div>
               )
