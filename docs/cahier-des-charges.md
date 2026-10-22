@@ -138,7 +138,8 @@ Autres/Hallelujah.cho
 ```
 
 - Tous les champs sont facultatifs ; sans fichier, le titre est le nom du PDF.
-- `crop` : zone affichée, en fraction de la page (repris de SongbookPro).
+- `crop` : zone affichée, en fraction de la page, commune à toutes les pages (repris de SongbookPro).
+- `pages` : recadrages propres à certaines pages, par numéro de page (`{"2": {…}}`) ; ils l'emportent sur `crop`. Recadrer « toutes les pages » les efface.
 
 ## Migration depuis SongbookPro
 
@@ -199,7 +200,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | LEC-07 | P1 | Mode plein écran sans barre ; tap au centre pour afficher les commandes |
 | LEC-08 | P2 | Taille de police ajustable pour le morceau courant, mémorisée dans le fichier par `{textsize:}` ; facteur d'échelle global par appareil dans les réglages |
 | LEC-09 | P2 | Mode paroles seules (accords masqués) |
-| LEC-10 | P2 | Lecture d’un PDF : pages, zoom, recadrage mémorisé, rotation. Fait le 2026-10-22 : pages, recadrage manuel ou automatique enregistré dans le `.pdf.json`, commun à toutes les pages ; rotation à faire |
+| LEC-10 | P2 | Lecture d’un PDF : pages, zoom, recadrage mémorisé, rotation. Fait le 2026-10-22 : pages, recadrage manuel ou automatique enregistré dans le `.pdf.json`, commun à toutes les pages ou propre à une page ; rotation à faire |
 | LEC-11 | P2 | Annotations au stylet : dessiner, surligner, gommer, annuler, tout effacer ; enregistrement automatique |
 | LEC-12 | P2 | Barre d'information discrète : titre, tonalité, heure, position dans le set |
 | LEC-13 | P3 | Pédale Bluetooth (touches clavier) : page suivante / précédente, morceau suivant / précédent ; configuration par capture de touche |

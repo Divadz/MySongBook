@@ -26,7 +26,8 @@ import { DisplaySettings } from './DisplaySettings';
 import { SetsPanel } from './SetsPanel';
 import { ConverterView } from './ConverterView';
 import { PdfView } from '../render/PdfView';
-import { parsePdfMeta, pdfMetaPath, serializePdfMeta, type Crop, type PdfMeta } from '../core/pdfMeta';
+import { cropForPage, parsePdfMeta, pdfMetaPath, serializePdfMeta, withCrop, type Crop, type PdfMeta } from '../core/pdfMeta';
+import type { CropScope } from '../render/PdfView';
 import { LibraryPanel } from './LibraryPanel';
 import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
@@ -275,10 +276,10 @@ export function App() {
   };
 
   /** Fin du recadrage d'un PDF : le cadre est écrit dans le .pdf.json voisin. */
-  const finishCrop = async (crop: Crop | null) => {
+  const finishCrop = async (crop: Crop | null, scope: CropScope) => {
     setCropping(false);
     if (!crop || !library || current?.kind !== 'library') return;
-    const meta = { ...pdfMeta, crop };
+    const meta = withCrop(pdfMeta, crop, scope === 'all' ? 'all' : page);
     try {
       await library.writeText(pdfMetaPath(current.path), serializePdfMeta(meta));
       setPdfMeta(meta);
@@ -580,6 +581,7 @@ export function App() {
   };
 
   const isPdf = currentEntry?.kind === 'pdf';
+  const pageCrop = useMemo(() => cropForPage(pdfMeta, page), [pdfMeta, page]);
   const canKeepTranspose = extraTranspose !== 0 && library !== null && current?.kind === 'library';
 
   return (
@@ -772,7 +774,7 @@ export function App() {
                   <PdfView
                     library={library}
                     path={current.path}
-                    crop={pdfMeta.crop}
+                    crop={pageCrop}
                     device={device}
                     scale={scale}
                     page={page}

@@ -219,6 +219,19 @@
   border-radius: 1mm;
   cursor: pointer;
 }
+.crop-scope {
+  display: inline-flex;
+}
+.crop-scope button {
+  border-radius: 0;
+}
+.crop-scope button + button {
+  border-left: none;
+}
+.crop-bar .crop-scope button.on {
+  background: #000;
+  color: #fff;
+}
 .crop-bar button.primary {
   background: #000;
   color: #fff;

@@ -11,10 +11,12 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 const MM_TO_PX = 96 / 25.4;
 
+export type CropScope = 'page' | 'all';
+
 interface Props {
   library: LibraryFS;
   path: string;
-  /** Recadrage mémorisé (fichier .pdf.json). */
+  /** Recadrage de la page affichée (fichier .pdf.json). */
   crop: Crop | undefined;
   device: DeviceSettings;
   /** Échelle d'affichage de la page, pour rendre le PDF à la bonne résolution. */
@@ -24,8 +26,8 @@ interface Props {
   onPageCount: (n: number) => void;
   /** Mode recadrage : page entière affichée, cadre déplaçable. */
   cropping: boolean;
-  /** Fin du recadrage : nouveau cadre, ou null pour annuler. */
-  onCropDone: (crop: Crop | null) => void;
+  /** Fin du recadrage : nouveau cadre et sa portée, ou null pour annuler. */
+  onCropDone: (crop: Crop | null, scope: CropScope) => void;
 }
 
 /** Rend une zone de page PDF dans un canevas hors écran (pas de page à moitié dessinée sur l'e-ink). */
@@ -43,10 +45,10 @@ async function renderRegion(page: PDFPageProxy, crop: Crop, pxPerUnit: number) {
   return { canvas, task };
 }
 
-/** Recadrage automatique : rectangle qui contient tout ce qui n'est pas blanc, sur les premières pages. */
-async function autoCrop(doc: PDFDocumentProxy): Promise<Crop> {
+/** Recadrage automatique : rectangle qui contient tout ce qui n'est pas blanc sur les pages données (1 = première). */
+async function autoCrop(doc: PDFDocumentProxy, pages: number[]): Promise<Crop> {
   let x0 = 1, y0 = 1, x1 = 0, y1 = 0;
-  for (let n = 1; n <= Math.min(doc.numPages, 8); n++) {
+  for (const n of pages) {
     const page = await doc.getPage(n);
     const { canvas, task } = await renderRegion(page, FULL_PAGE, 0.6);
     await task.promise;
@@ -81,6 +83,7 @@ export function PdfView({ library, path, crop, device, scale, page, onPageCount,
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [draft, setDraft] = useState<Crop>(FULL_PAGE);
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState<CropScope>('page');
   const drag = useRef<Drag | null>(null);
 
   // Chargement du document
@@ -183,7 +186,8 @@ export function PdfView({ library, path, crop, device, scale, page, onPageCount,
     if (!doc) return;
     setBusy(true);
     try {
-      setDraft(await autoCrop(doc));
+      const pages = scope === 'page' ? [Math.min(page + 1, doc.numPages)] : Array.from({ length: Math.min(doc.numPages, 8) }, (_, i) => i + 1);
+      setDraft(await autoCrop(doc, pages));
     } finally {
       setBusy(false);
     }
@@ -228,15 +232,22 @@ export function PdfView({ library, path, crop, device, scale, page, onPageCount,
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <span>Recadrage (toutes les pages)</span>
+          <span className="crop-scope">
+            <button className={scope === 'page' ? 'on' : ''} onClick={() => setScope('page')}>
+              Cette page
+            </button>
+            <button className={scope === 'all' ? 'on' : ''} onClick={() => setScope('all')} title="Remplace aussi les recadrages propres à certaines pages">
+              Toutes les pages
+            </button>
+          </span>
           <button onClick={runAutoCrop} disabled={busy || !doc}>
             {busy ? 'Analyse…' : 'Automatique'}
           </button>
           <button onClick={() => setDraft(FULL_PAGE)}>Page entière</button>
-          <button className="primary" onClick={() => onCropDone(draft)}>
+          <button className="primary" onClick={() => onCropDone(draft, scope)}>
             Enregistrer
           </button>
-          <button onClick={() => onCropDone(null)}>Annuler</button>
+          <button onClick={() => onCropDone(null, scope)}>Annuler</button>
         </div>
       )}
     </div>
