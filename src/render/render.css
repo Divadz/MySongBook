@@ -236,3 +236,94 @@
   background: #000;
   color: #fff;
 }
+
+/* --- Grilles en cases --------------------------------------------------------- */
+.grid-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--msb-sans);
+  font-size-adjust: var(--msb-cap);
+  margin-top: -1px; /* les lignes d'une grille se touchent */
+}
+.grid-label {
+  flex: none;
+  width: 3em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.grid-cells {
+  display: flex;
+  min-width: 0;
+}
+.grid-cell {
+  position: relative;
+  box-sizing: border-box;
+  width: 5.6em;
+  min-width: 0;
+  flex: 0 1 5.6em;
+  height: 2.7em;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  border-left: 1px solid #000;
+}
+.grid-cell.left-double { border-left: 3px double #000; }
+.grid-cell.left-end { border-left: 3px solid #000; }
+.grid-cell.right-single { border-right: 1px solid #000; }
+.grid-cell.right-double { border-right: 3px double #000; }
+.grid-cell.right-end { border-right: 4px solid #000; }
+.grid-cell.left-rep-start,
+.grid-cell.left-rep-both { border-left: 3px double #000; }
+.grid-cell.right-rep-end,
+.grid-cell.right-rep-both { border-right: 3px double #000; }
+/* Points de reprise */
+.grid-cell.left-rep-start::before,
+.grid-cell.left-rep-both::before,
+.grid-cell.right-rep-end::after,
+.grid-cell.right-rep-both::after {
+  content: ':';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-55%);
+  font-weight: 700;
+  line-height: 1;
+}
+.grid-cell::before { left: 0.15em; }
+.grid-cell::after { right: 0.15em; }
+.gc-one {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+.gc-repeat {
+  font-weight: 400;
+}
+.gc-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.gc-lines path {
+  stroke: #000;
+  stroke-width: 1;
+  fill: none;
+}
+.gc-part {
+  position: absolute;
+  font-size: 0.8em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.gc-part.tl { left: 0.3em; top: 0.25em; }
+.gc-part.br { right: 0.3em; bottom: 0.25em; }
+.gc-part.l { left: 0.2em; top: 50%; transform: translateY(-50%); }
+.gc-part.r { right: 0.2em; top: 50%; transform: translateY(-50%); }
+.gc-part.t { left: 50%; top: 0.15em; transform: translateX(-50%); }
+.gc-part.b { left: 50%; bottom: 0.15em; transform: translateX(-50%); }
+.grid-comment {
+  flex: none;
+}

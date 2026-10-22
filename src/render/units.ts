@@ -3,11 +3,21 @@
  * en pages et colonnes à partir de leurs hauteurs mesurées.
  */
 import type { Block, SongLine, SongMeta, CommentStyle } from '../core/song';
+import { parseGridLine } from '../core/grid';
 
 export type Unit =
   | { id: string; kind: 'title'; meta: SongMeta }
   | { id: string; kind: 'header'; type: string; label: string }
-  | { id: string; kind: 'line'; type: string; line: SongLine; first: boolean; last: boolean }
+  | {
+      id: string;
+      kind: 'line';
+      type: string;
+      line: SongLine;
+      first: boolean;
+      last: boolean;
+      /** Grille dont une ligne au moins a un texte en marge : toutes les lignes réservent la marge. */
+      gridMargin?: boolean;
+    }
   | { id: string; kind: 'abc'; abc: string; label?: string; scale?: number; width?: string }
   | { id: string; kind: 'image'; src: string; width?: string }
   | { id: string; kind: 'comment'; text: string; style: CommentStyle }
@@ -21,6 +31,8 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
       case 'section': {
         const label = block.label ?? defaultLabel(block.type);
         if (label && showLabels(block.type)) units.push({ id: `${id}h`, kind: 'header', type: block.type, label });
+        const gridMargin =
+          block.type === 'grid' && block.lines.some((l) => l.kind === 'literal' && !!parseGridLine(l.text)?.label);
         block.lines.forEach((line, li) => {
           units.push({
             id: `${id}l${li}`,
@@ -29,6 +41,7 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
             line,
             first: li === 0,
             last: li === block.lines.length - 1,
+            gridMargin,
           });
         });
         break;

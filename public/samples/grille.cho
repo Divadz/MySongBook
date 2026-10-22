@@ -12,6 +12,12 @@
 | G7 . . . | F7 . . . | C7 . . . | G7 . . . |
 {end_of_grid}
 
+{start_of_grid: Pont}
+A  || Am . . . | Dm7 . G7 . | C~Am | F G E7 Am |
+   |: F . . . | % | Dm7 . G7 . | C . . . :| x2
+   | Bb/D | Eb . F . | Gm7~C7~F | |.
+{end_of_grid}
+
 {start_of_verse: Thème}
 [C7]   [F7]   [C7]   [C7]
 Woke up this [F7]morning, the [F7]sun was [C7]gone [C7]

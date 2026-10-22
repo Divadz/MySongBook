@@ -4,6 +4,7 @@ import type { Unit } from './units';
 import type { DeviceSettings, RenderSettings } from '../core/settings';
 import { css, sectionStyleKey } from '../core/settings';
 import type { SongMeta } from '../core/song';
+import { parseGridLine, type GridCell, type GridRow } from '../core/grid';
 
 interface Props {
   unit: Unit;
@@ -43,6 +44,57 @@ function spacedLyrics(lyrics: string, beforeChord: boolean): React.ReactNode {
       {lyrics.slice(0, m.index)}
       <span className="gap" style={{ width: `${m[0].length * 0.55}em` }} />
     </>
+  );
+}
+
+const barClass = (bar: string | undefined) =>
+  ({ '||': 'double', '|.': 'end', '|:': 'rep-start', ':|': 'rep-end', ':||': 'rep-end', ':|:': 'rep-both' })[bar ?? '|'] ?? 'single';
+
+/**
+ * Contenu d'une case de grille. Plusieurs accords se partagent la case :
+ * 2 → diagonale (haut gauche, bas droite) ; 3 → diagonale et demi-diagonale
+ * (haut gauche, bas, droite) ; 4 → croix (gauche, haut, bas, droite).
+ */
+function GridCellContent({ cell }: { cell: GridCell }) {
+  if (cell.repeat) return <span className="gc-one gc-repeat">{cell.repeat}</span>;
+  const c = cell.chords;
+  if (c.length === 0) return null;
+  if (c.length === 1) return <span className="gc-one">{c[0]}</span>;
+  const lines =
+    c.length === 2 ? ['M0 100L100 0'] : c.length === 3 ? ['M0 100L100 0', 'M50 50L100 100'] : ['M0 100L100 0', 'M0 0L100 100'];
+  const places = c.length === 2 ? ['tl', 'br'] : c.length === 3 ? ['tl', 'b', 'r'] : ['l', 't', 'b', 'r'];
+  return (
+    <>
+      <svg className="gc-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+        {lines.map((d) => (
+          <path key={d} d={d} vectorEffect="non-scaling-stroke" />
+        ))}
+      </svg>
+      {c.slice(0, 4).map((chord, i) => (
+        <span key={i} className={`gc-part ${places[i]}`}>
+          {chord}
+        </span>
+      ))}
+    </>
+  );
+}
+
+function GridRowView({ row, margin, style }: { row: GridRow; margin: boolean; style: React.CSSProperties }) {
+  return (
+    <div className="grid-row" style={style}>
+      {margin && <span className="grid-label">{row.label}</span>}
+      <div className="grid-cells">
+        {row.cells.map((cell, i) => (
+          <div
+            key={i}
+            className={`grid-cell left-${barClass(row.bars[i])} ${i === row.cells.length - 1 ? `right-${barClass(row.bars[i + 1])}` : ''}`}
+          >
+            <GridCellContent cell={cell} />
+          </div>
+        ))}
+      </div>
+      {row.comment && <span className="grid-comment">{row.comment}</span>}
+    </div>
   );
 }
 
@@ -107,6 +159,10 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
         lineHeight: settings.lineHeight,
         paddingBottom: unit.last ? `${st.size * 0.6 * scale}pt` : 0,
       };
+      if (line.kind === 'literal' && unit.type === 'grid') {
+        const row = parseGridLine(line.text);
+        if (row) return <GridRowView row={row} margin={!!unit.gridMargin} style={{ ...css(st, scale), ...spacing }} />;
+      }
       if (line.kind === 'literal') {
         // Grilles et tablatures : chasse fixe.
         return (

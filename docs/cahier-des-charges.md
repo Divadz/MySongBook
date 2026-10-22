@@ -213,8 +213,9 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 |:---|:--------:|:---------|
 | REN-01 | P1 | Accords au-dessus des paroles, alignés sur la syllabe ; accords seuls sur une ligne sans parole |
 | REN-02 | P1 | Sections : `verse`, `chorus`, `bridge`, `tab`, `grid`, sections nommées, `{c:}` comme titre de section ; `{chorus}` rappelle le dernier refrain |
+| REN-02b | P1 | Grilles dessinées en cases, une par mesure : plusieurs accords dans une mesure (temps « . » ou « ~ ») partagent la case — 2 en diagonale (haut gauche, bas droite), 3 en diagonale et demi-diagonale (haut gauche, bas, droite), 4 en croix (gauche, haut, bas, droite) ; `%` ; barres `||`, `|.`, `|:`, `:|` ; texte en marge avant la première barre et après la dernière. Fait le 2026-10-22 |
 | REN-03 | P1 | Métadonnées : `title`, `subtitle`, `artist`, `composer`, `lyricist`, `key`, `tempo`, `time`, `capo` (affiché seulement), `duration`, `copyright`, `tags` |
-| REN-04 | P1 | Transposition `{transpose:}` et `{key:}` ; choix de l'enharmonie selon la tonalité |
+| REN-04 | P1 | Transposition `{transpose:}` et `{key:}` ; choix de l'enharmonie selon la tonalité. Fait : bémols dans les tonalités à bémols (et leurs relatives), dièses ailleurs ; grilles transposées entre les barres seulement |
 | REN-05 | P1 | `{new_page}`, `{column_break}`, `{columns: n}` |
 | REN-06 | P1 | `{image: fichier}` avec taille optionnelle, image relative au dossier du morceau ou à `images/` |
 | REN-07 | P1 | `{start_of_abc}` / `{end_of_abc}` rendus en portée via abcjs, transposés avec le morceau |
@@ -231,7 +232,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | REG-01 | P1 | Taille de police des paroles et des accords, interligne, marges de page |
 | REG-02 | P1 | Style par type de bloc (titre, métadonnées, libellés de section, couplet, refrain, pont, grilles, tablatures, accords, notes de texte) : taille, gras, italique, décalage à droite en em (sauf accords) ; taille des portées ABC ; choix des métadonnées affichées ; libellés affichés ou non par type de section. Fait le 2026-10-21 |
 | REG-03 | P1 | Nombre de colonnes (1 ou 2), coupure des lignes longues (couper ou réduire) |
-| REG-04 | P2 | Position des accords (au-dessus, en ligne entre crochets), police monospace pour tablatures et grilles |
+| REG-04 | P2 | Position des accords (au-dessus, en ligne entre crochets), police monospace pour tablatures |
 | REG-05 | P2 | Réglages partagés dans `.mysongbook/settings.json` (même rendu PC et tablette) ; par appareil (`device-<nom>.json`) : format de page, facteur d'échelle des polices, touches de volume, rafraîchissement e-ink |
 | REG-06 | P2 | Aperçu en direct sur un morceau d'exemple |
 

@@ -7,7 +7,9 @@
  * de ChordSheetJS dépendent des lignes vides et fusionnent des sections
  * collées.
  */
-import { ChordProParser, ChordLyricsPair, Tag, Comment, Literal, Song, Key } from 'chordsheetjs';
+import { ChordProParser, ChordLyricsPair, Tag, Comment, Literal, Song } from 'chordsheetjs';
+import { mapGridChords } from './grid';
+import { spellingFor, transposeChordText, transposeKey, type Spelling } from './transpose';
 
 export interface ChordLyric {
   chords: string;
@@ -224,22 +226,13 @@ function escapeStrayBrackets(source: string): string {
     .join('\n');
 }
 
-/** Transposition ; un accord que ChordSheetJS ne sait pas transposer (« (REFRAIN) ») reste tel quel. */
-function transposeSong(song: Song, delta: number): Song {
-  try {
-    return song.transpose(delta);
-  } catch {
-    const key = Key.parse(metaString(song, 'key') ?? null);
-    const moved = song.mapItems((item) => {
-      if (!(item instanceof ChordLyricsPair)) return item;
-      try {
-        return item.transpose(delta);
-      } catch {
-        return item;
-      }
-    });
-    return key ? moved.changeMetadata({ key: key.transpose(delta).toString() }) : moved;
-  }
+/** Transposition des accords et de la tonalité, altérations selon la tonalité d'arrivée. */
+function transposeSong(song: Song, delta: number, spelling: Spelling): Song {
+  const moved = song.mapItems((item) =>
+    item instanceof ChordLyricsPair && item.chords ? item.set({ chords: transposeChordText(item.chords, delta, spelling) }) : item,
+  );
+  const key = metaString(song, 'key');
+  return key ? moved.changeMetadata({ key: transposeKey(key, delta) }) : moved;
 }
 
 /**
@@ -254,7 +247,8 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
   const { source: plain, attributes: sectionAttrs } = extractSectionAttributes(cleaned);
   let song = new ChordProParser().parse(escapeStrayBrackets(plain));
   let sectionIndex = 0;
-  if (totalTranspose !== 0) song = transposeSong(song, totalTranspose);
+  const spelling = spellingFor(metaString(song, 'key'), totalTranspose);
+  if (totalTranspose !== 0) song = transposeSong(song, totalTranspose, spelling);
 
   const meta: SongMeta = {
     title: metaString(song, 'title') ?? 'Sans titre',
@@ -361,7 +355,10 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
     const comments = items.filter((it): it is Comment => it instanceof Comment);
 
     if (literals.length > 0) {
-      ensureSection().lines.push({ kind: 'literal', text: literals.map((l) => l.string).join('') });
+      const sec = ensureSection();
+      let text = literals.map((l) => l.string).join('');
+      if (sec.type === 'grid' && totalTranspose !== 0) text = mapGridChords(text, (c) => transposeChordText(c, totalTranspose, spelling));
+      sec.lines.push({ kind: 'literal', text });
     } else if (pairs.length > 0) {
       const clean = pairs
         .map((p) => ({ chords: p.chords.trim() || (p.annotation ?? '').trim(), lyrics: (p.lyrics ?? '').replace(/\\\[/g, '[') }))
