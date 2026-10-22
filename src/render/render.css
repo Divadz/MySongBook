@@ -313,10 +313,14 @@
 }
 .gc-part.tl { left: 0.3em; top: 0.25em; }
 .gc-part.br { right: 0.3em; bottom: 0.25em; }
-.gc-part.l { left: 0.2em; top: 50%; transform: translateY(-50%); }
-.gc-part.r { right: 0.2em; top: 50%; transform: translateY(-50%); }
-.gc-part.t { left: 50%; top: 0.15em; transform: translateX(-50%); }
-.gc-part.b { left: 50%; bottom: 0.15em; transform: translateX(-50%); }
+.gc-part.l { left: 0.15em; top: 50%; transform: translateY(-50%); font-size: 0.72em; }
+.gc-part.r { right: 0.15em; top: 50%; transform: translateY(-50%); font-size: 0.72em; }
+.gc-part.t { left: 50%; top: 0.08em; transform: translateX(-50%); font-size: 0.72em; }
+.gc-part.b { left: 50%; bottom: 0.08em; transform: translateX(-50%); font-size: 0.72em; }
+/* Zones de trois triangles : le nom se place au centre de la partie libre. */
+.gc-part.rest-l { left: 32%; top: 50%; transform: translate(-50%, -50%); }
+.gc-part.rest-r { left: 69%; top: 50%; transform: translate(-50%, -50%); }
+.gc-part.full { left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .grid-comment {
   padding-left: 0.6em;
   white-space: nowrap;

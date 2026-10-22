@@ -4,7 +4,7 @@ import type { GridLayout, Unit } from './units';
 import type { DeviceSettings, RenderSettings } from '../core/settings';
 import { css, sectionStyleKey } from '../core/settings';
 import type { SongMeta } from '../core/song';
-import { parseGridLine, type GridCell, type GridRow } from '../core/grid';
+import { drawCell, parseGridLine, type GridCell, type GridRow } from '../core/grid';
 
 interface Props {
   unit: Unit;
@@ -50,19 +50,11 @@ function spacedLyrics(lyrics: string, beforeChord: boolean): React.ReactNode {
 const barClass = (bar: string | undefined) =>
   ({ '||': 'double', '|.': 'end', '|:': 'rep-start', ':|': 'rep-end', ':||': 'rep-end', ':|:': 'rep-both' })[bar ?? '|'] ?? 'single';
 
-/**
- * Contenu d'une case de grille. Plusieurs accords se partagent la case :
- * 2 → diagonale (haut gauche, bas droite) ; 3 → diagonale et demi-diagonale
- * (haut gauche, bas, droite) ; 4 → croix (gauche, haut, bas, droite).
- */
+/** Contenu d'une case de grille ; le découpage selon les temps est décrit dans core/grid.ts. */
 function GridCellContent({ cell }: { cell: GridCell }) {
   if (cell.repeat) return <span className="gc-one gc-repeat">{cell.repeat}</span>;
-  const c = cell.chords;
-  if (c.length === 0) return null;
-  if (c.length === 1) return <span className="gc-one">{c[0]}</span>;
-  const lines =
-    c.length === 2 ? ['M0 100L100 0'] : c.length === 3 ? ['M0 100L100 0', 'M50 50L100 100'] : ['M0 100L100 0', 'M0 0L100 100'];
-  const places = c.length === 2 ? ['tl', 'br'] : c.length === 3 ? ['tl', 'b', 'r'] : ['l', 't', 'b', 'r'];
+  if (!cell.quarters) return cell.chords[0] ? <span className="gc-one">{cell.chords[0]}</span> : null;
+  const { lines, labels } = drawCell(cell.quarters);
   return (
     <>
       <svg className="gc-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
@@ -70,9 +62,9 @@ function GridCellContent({ cell }: { cell: GridCell }) {
           <path key={d} d={d} vectorEffect="non-scaling-stroke" />
         ))}
       </svg>
-      {c.slice(0, 4).map((chord, i) => (
-        <span key={i} className={`gc-part ${places[i]}`}>
-          {chord}
+      {labels.map((l, i) => (
+        <span key={i} className={`gc-part ${l.place}`}>
+          {l.chord}
         </span>
       ))}
     </>
