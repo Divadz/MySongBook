@@ -25,6 +25,8 @@ import { newSetFile, noteAsChordPro, scanSets, serializeSet, sortSets, type Setl
 import { DisplaySettings } from './DisplaySettings';
 import { SetsPanel } from './SetsPanel';
 import { ConverterView } from './ConverterView';
+import { PdfView } from '../render/PdfView';
+import { parsePdfMeta, pdfMetaPath, serializePdfMeta, type Crop, type PdfMeta } from '../core/pdfMeta';
 import { LibraryPanel } from './LibraryPanel';
 import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
@@ -76,6 +78,9 @@ export function App() {
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [scale, setScale] = useState(1);
+  /** Métadonnées du PDF affiché (.pdf.json) et mode recadrage. */
+  const [pdfMeta, setPdfMeta] = useState<PdfMeta>({});
+  const [cropping, setCropping] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
@@ -194,9 +199,15 @@ export function App() {
       if (current.kind === 'scratch') return current.text;
       if (current.kind === 'sample') return (await fetch(`/samples/${current.path}`)).text();
       if (!library) return '';
-      if (/\.pdf$/i.test(current.path)) return '';
+      if (/\.pdf$/i.test(current.path)) {
+        const metaPath = pdfMetaPath(current.path);
+        const meta = (await library.exists(metaPath)) ? parsePdfMeta(await library.readText(metaPath)) : {};
+        if (!cancelled) setPdfMeta(meta);
+        return '';
+      }
       return library.readText(current.path);
     };
+    setCropping(false);
     load()
       .then((t) => {
         if (cancelled) return;
@@ -261,6 +272,20 @@ export function App() {
     await saveIfNeeded();
     wantLastPage.current = false;
     setCurrent(target);
+  };
+
+  /** Fin du recadrage d'un PDF : le cadre est écrit dans le .pdf.json voisin. */
+  const finishCrop = async (crop: Crop | null) => {
+    setCropping(false);
+    if (!crop || !library || current?.kind !== 'library') return;
+    const meta = { ...pdfMeta, crop };
+    try {
+      await library.writeText(pdfMetaPath(current.path), serializePdfMeta(meta));
+      setPdfMeta(meta);
+      flash('Recadrage enregistré.');
+    } catch (e) {
+      flash(`Échec de l'enregistrement : ${(e as Error).message}`);
+    }
   };
 
   /** Résultat du convertisseur : nouveau fichier, ou brouillon à télécharger sans bibliothèque. */
@@ -547,6 +572,7 @@ export function App() {
   }, []);
 
   const onViewportClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (cropping) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     if (x < 0.33) prev();
@@ -675,7 +701,15 @@ export function App() {
           )}
           {notice && <span className="notice">{notice}</span>}
           <span className="spacer" />
-          {current?.kind !== 'note' && (
+          {isPdf && (
+            <>
+              {currentEntry?.key && <span>Tonalité {currentEntry.key}</span>}
+              <button className={cropping ? 'toggle on' : 'toggle'} onClick={() => setCropping((c) => !c)} title="Choisir la zone de la page à afficher">
+                Recadrer
+              </button>
+            </>
+          )}
+          {current?.kind !== 'note' && !isPdf && (
           <>
           <span>Tonalité {song?.meta.key ?? '?'}</span>
           <button onClick={() => setExtraTranspose((t) => t - 1)} title="Transposer d'un demi-ton vers le bas">
@@ -732,7 +766,22 @@ export function App() {
           {mode === 'edit' && <div className="splitter" onMouseDown={startDrag} />}
           <div className="viewport" ref={viewportRef} onClick={onViewportClick}>
             {isPdf ? (
-              <div className="placeholder">Les morceaux PDF seront affichés dans une prochaine étape.</div>
+              library &&
+              current?.kind === 'library' && (
+                <div className="page-scaler" style={{ transform: `scale(${scale})` }}>
+                  <PdfView
+                    library={library}
+                    path={current.path}
+                    crop={pdfMeta.crop}
+                    device={device}
+                    scale={scale}
+                    page={page}
+                    onPageCount={onPageCount}
+                    cropping={cropping}
+                    onCropDone={finishCrop}
+                  />
+                </div>
+              )
             ) : (
               renderSong && (
                 <div className="page-scaler" style={{ transform: `scale(${scale})` }}>
