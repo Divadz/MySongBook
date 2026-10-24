@@ -94,7 +94,8 @@ function jsonArray(s: string | undefined): unknown[] {
 function splitTitle(song: SbpSong): { title: string; artist: string } {
   const title = clean(song.name);
   const artist = clean(song.author);
-  if (artist) return { title, artist };
+  // « Are you gonna be my girl - The Jets », artiste « The Jets » : l'artiste n'est pas répété dans le titre.
+  if (artist) return { title: title.endsWith(` - ${artist}`) ? title.slice(0, -artist.length - 3) : title, artist };
   const m = /^(.+?)\s+-\s+(.+)$/.exec(title);
   return m ? { title: m[1], artist: m[2] } : { title, artist: '' };
 }
@@ -129,7 +130,9 @@ function pdfMeta(song: SbpSong): string {
   try {
     const p = JSON.parse(song._displayParams ?? '') as { Top: number; Left: number; Width: number; Height: number };
     const round = (n: number) => Math.round(n * 10000) / 10000;
-    meta.crop = { top: round(p.Top), left: round(p.Left), width: round(p.Width), height: round(p.Height) };
+    // « {} » : pas de recadrage enregistré.
+    if ([p.Top, p.Left, p.Width, p.Height].every(Number.isFinite))
+      meta.crop = { top: round(p.Top), left: round(p.Left), width: round(p.Width), height: round(p.Height) };
   } catch {
     /* pas de recadrage */
   }
