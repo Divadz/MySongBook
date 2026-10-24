@@ -36,6 +36,14 @@ export function rememberedFolder(): string {
 
 const clean = (p: string) => p.split('/').filter(Boolean).join('/');
 
+const safeDecode = (s: string) => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
 class NativeLibrary implements LibraryFS {
   readonly name: string;
 
@@ -50,8 +58,13 @@ class NativeLibrary implements LibraryFS {
 
   private async url(path: string): Promise<string> {
     const { uri } = await Filesystem.getUri(this.opts(path));
-    // Les noms de fichiers ont des espaces, des accents, des apostrophes : on encode chaque segment.
-    const encoded = uri.replace(/^file:\/\//, '').split('/').map(encodeURIComponent).join('/');
+    // Les noms de fichiers ont des espaces, des accents, des apostrophes. getUri rend une URI
+    // déjà encodée ou non selon les caractères : on décode puis on réencode chaque segment.
+    const encoded = uri
+      .replace(/^file:\/\//, '')
+      .split('/')
+      .map((part) => encodeURIComponent(safeDecode(part)))
+      .join('/');
     return `${Capacitor.convertFileSrc(`file://${encoded}`)}?t=${Date.now()}`;
   }
 
