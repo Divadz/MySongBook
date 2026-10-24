@@ -2,7 +2,6 @@ import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, use
 import { parseSong, writeTranspose, type SongModel } from '../core/song';
 import {
   applyTextsize,
-  defaultDeviceSettings,
   loadRenderSettings,
   mergeRenderSettings,
   saveRenderSettings,
@@ -34,6 +33,7 @@ import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
 import { StageControls } from './StageControls';
 import { onStageKey, setStageActive } from '../core/stage';
+import { clampFontScale, deviceName, loadDeviceSettings, loadLocalDeviceSettings, saveDeviceSettings } from '../core/deviceSettings';
 import type { DirectiveHelp } from './directives';
 import './app.css';
 
@@ -81,7 +81,11 @@ export function App() {
   const [settings, setSettings] = useState<RenderSettings>(loadRenderSettings);
   const settingsFromLibrary = useRef(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [device] = useState(defaultDeviceSettings);
+  const [device, setDevice] = useState(loadLocalDeviceSettings);
+  /** Nom de l'appareil pour .mysongbook/device-<nom>.json. */
+  const deviceNameRef = useRef(deviceName());
+  /** Zoom en cours de pincement (aperçu) ou tout juste appliqué, affiché en mode scène. */
+  const [zoomBadge, setZoomBadge] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [scale, setScale] = useState(1);
@@ -159,6 +163,9 @@ export function App() {
       flash('Réglages de la bibliothèque illisibles : réglages locaux conservés.');
     }
     settingsFromLibrary.current = true;
+    // Réglages propres à cet appareil (zoom du texte).
+    const own = await loadDeviceSettings(lib, await deviceNameRef.current);
+    if (own) setDevice(own);
     const list = await scanLibrary(lib).catch((e) => {
       setLibError((e as Error).message);
       return [] as SongEntry[];
@@ -615,7 +622,7 @@ export function App() {
   }, []);
 
   const onViewportClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (cropping) return;
+    if (cropping || Date.now() < pinch.current.quietUntil) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     if (x < 0.33) prev();
@@ -660,10 +667,82 @@ export function App() {
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
+  // --- Zoom du texte, propre à l'appareil (pincement en mode scène) -------------
+  const saveDeviceTimer = useRef<number>();
+  const setFontScale = (value: number) => {
+    const fontScale = clampFontScale(value);
+    const next = { ...device, fontScale };
+    setDevice(next);
+    window.clearTimeout(saveDeviceTimer.current);
+    saveDeviceTimer.current = window.setTimeout(async () => {
+      try {
+        await saveDeviceSettings(library, await deviceNameRef.current, next);
+      } catch {
+        flash('Zoom non enregistré dans la bibliothèque.');
+      }
+    }, 800);
+  };
+  const badgeTimer = useRef<number>();
+  const showZoom = (value: number | null, hideAfter?: number) => {
+    setZoomBadge(value);
+    window.clearTimeout(badgeTimer.current);
+    if (hideAfter) badgeTimer.current = window.setTimeout(() => setZoomBadge(null), hideAfter);
+  };
+  // Pincement à deux doigts : aperçu du zoom pendant le geste, mise en page au lâcher
+  // (repaginer à chaque mouvement serait trop lent sur l'e-ink).
+  const pinch = useRef({ points: new Map<number, { x: number; y: number }>(), start: 0, base: 1, value: 0, quietUntil: 0 });
+  const pinchDistance = () => {
+    const [a, b] = [...pinch.current.points.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (!canZoom || e.pointerType !== 'touch') return;
+    const p = pinch.current;
+    p.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (p.points.size === 2) {
+      p.start = pinchDistance();
+      p.base = device.fontScale;
+      p.value = device.fontScale;
+      showZoom(device.fontScale);
+    }
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const p = pinch.current;
+    if (!p.points.has(e.pointerId)) return;
+    p.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (p.points.size === 2 && p.start > 0) {
+      const value = clampFontScale((p.base * pinchDistance()) / p.start);
+      if (value !== p.value) {
+        p.value = value;
+        showZoom(value);
+      }
+    }
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const p = pinch.current;
+    if (!p.points.delete(e.pointerId)) return;
+    if (p.start > 0) {
+      // Fin du geste : le tap qui suit le lâcher ne doit pas tourner la page.
+      p.start = 0;
+      p.quietUntil = Date.now() + 500;
+      if (p.value !== device.fontScale) setFontScale(p.value);
+      showZoom(p.value, 1200);
+    }
+  };
+  // PC : Ctrl + molette (ou pincement du pavé tactile) en mode scène.
+  const onWheel = (e: React.WheelEvent) => {
+    if (!canZoom || !e.ctrlKey) return;
+    const value = clampFontScale(device.fontScale + (e.deltaY < 0 ? 0.05 : -0.05));
+    setFontScale(value);
+    showZoom(value, 1200);
+  };
+
   // Une page tournée referme les commandes.
   useEffect(() => setStageControls(false), [page, current]);
 
   const isPdf = currentEntry?.kind === 'pdf';
+  /** Zoom du texte : en mode scène, sur les morceaux ChordPro (un PDF garde sa mise en page). */
+  const canZoom = stage && !isPdf && current?.kind !== 'note';
   const scalerStyle = { transform: `scale(${scale})`, '--hair': `${Math.max(1, 1 / scale)}px` } as React.CSSProperties;
   const pageCrop = useMemo(() => cropForPage(pdfMeta, page), [pdfMeta, page]);
   const canKeepTranspose = extraTranspose !== 0 && library !== null && current?.kind === 'library';
@@ -878,7 +957,16 @@ export function App() {
             </div>
           )}
           {mode === 'edit' && <div className="splitter" onMouseDown={startDrag} />}
-          <div className="viewport" ref={viewportRef} onClick={onViewportClick}>
+          <div
+            className="viewport"
+            ref={viewportRef}
+            onClick={onViewportClick}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onWheel={onWheel}
+          >
             {isPdf ? (
               library &&
               current?.kind === 'library' && (
@@ -906,6 +994,7 @@ export function App() {
             {stage && playingSet && playing && page >= pageCount - 1 && playing.index < playingSet.items.length - 1 && (
               <div className="stage-next">Ensuite : {titleOf(playingSet.items[playing.index + 1])}</div>
             )}
+            {stage && zoomBadge !== null && <div className="stage-zoom">Texte {Math.round(zoomBadge * 100)} %</div>}
           </div>
           {stage && stageControls && (
             <StageControls
@@ -917,6 +1006,8 @@ export function App() {
               titleOf={titleOf}
               transpose={current?.kind !== 'note' && !isPdf && song ? song.totalTranspose : null}
               keyName={song?.meta.key}
+              fontScale={canZoom ? device.fontScale : null}
+              onFontScale={(d) => setFontScale(d === 'reset' ? 1 : device.fontScale + d)}
               onTranspose={(d) => setExtraTranspose((t) => (d === 'reset' ? 0 : t + d))}
               onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
               onClose={() => setStageControls(false)}

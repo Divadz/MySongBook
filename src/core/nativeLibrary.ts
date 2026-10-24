@@ -12,7 +12,7 @@ import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import type { LibraryFS } from './library';
 
 interface StorageAccessPlugin {
-  status(): Promise<{ granted: boolean; root: string }>;
+  status(): Promise<{ granted: boolean; root: string; model: string }>;
   request(): Promise<void>;
 }
 const StorageAccess = registerPlugin<StorageAccessPlugin>('StorageAccess');

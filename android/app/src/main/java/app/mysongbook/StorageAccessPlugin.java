@@ -34,6 +34,8 @@ public class StorageAccessPlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("granted", granted());
         ret.put("root", Environment.getExternalStorageDirectory().getAbsolutePath());
+        // Nom de l'appareil pour ses réglages propres (.mysongbook/device-<nom>.json).
+        ret.put("model", Build.MODEL);
         call.resolve(ret);
     }
 

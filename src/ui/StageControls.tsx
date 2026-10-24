@@ -16,6 +16,9 @@ interface Props {
   transpose: number | null;
   keyName?: string;
   onTranspose: (delta: number | 'reset') => void;
+  /** Zoom du texte de cet appareil, ou null si sans objet (PDF, note). */
+  fontScale: number | null;
+  onFontScale: (delta: number | 'reset') => void;
   onPlay: (index: number) => void;
   onClose: () => void;
   onExit: () => void;
@@ -50,6 +53,21 @@ export function StageControls(p: Props) {
             </button>
             <button className="stage-button" onClick={() => p.onTranspose(1)} aria-label="Un demi-ton plus haut">
               ♯
+            </button>
+          </div>
+        )}
+
+        {p.fontScale !== null && (
+          <div className="stage-row">
+            <span className="stage-label">Taille du texte</span>
+            <button className="stage-button" onClick={() => p.onFontScale(-0.1)} aria-label="Texte plus petit">
+              −
+            </button>
+            <button className="stage-button" onClick={() => p.onFontScale('reset')} title="Revenir à 100 %">
+              {Math.round(p.fontScale * 100)} %
+            </button>
+            <button className="stage-button" onClick={() => p.onFontScale(0.1)} aria-label="Texte plus grand">
+              +
             </button>
           </div>
         )}
