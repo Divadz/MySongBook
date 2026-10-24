@@ -423,6 +423,23 @@ body,
   font-size: 12px;
   color: #666;
 }
+.native-folder label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  overflow-wrap: anywhere;
+}
+.native-folder input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 6px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 14px;
+  border: 1px solid #999;
+  border-radius: 4px;
+}
 .sidebar-error {
   font-size: 12px;
   color: #900;

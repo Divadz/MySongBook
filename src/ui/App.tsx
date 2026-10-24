@@ -21,6 +21,7 @@ import {
 } from '../core/library';
 import { fsAccessSupported, pickLibrary, rememberedLibrary, reopenLibrary } from '../core/fsAccess';
 import { HttpLibrary, devLibraryInfo } from '../core/httpLibrary';
+import { isNative, openNativeLibrary, rememberedFolder, requestStorage, storageStatus } from '../core/nativeLibrary';
 import { newSetFile, noteAsChordPro, scanSets, serializeSet, sortSets, type Setlist } from '../core/setlist';
 import { DisplaySettings } from './DisplaySettings';
 import { SetsPanel } from './SetsPanel';
@@ -47,6 +48,9 @@ export function App() {
   const [entries, setEntries] = useState<SongEntry[]>([]);
   const [remembered, setRemembered] = useState<{ name: string; granted: boolean } | null>(null);
   const [devLib, setDevLib] = useState<{ name: string } | null>(null);
+  /** Tablette : accès aux fichiers accordé, et dossier de la bibliothèque. */
+  const [nativeAccess, setNativeAccess] = useState<{ granted: boolean; root: string } | null>(null);
+  const [nativeFolder, setNativeFolder] = useState(rememberedFolder);
   const [libError, setLibError] = useState<string | null>(null);
   const [samples, setSamples] = useState<SampleEntry[]>([]);
 
@@ -116,6 +120,7 @@ export function App() {
         setCurrent((c) => c ?? (list.length > 0 ? { kind: 'sample', path: list[0].file } : null));
       });
     devLibraryInfo().then(setDevLib);
+    if (isNative) checkNative(true);
     rememberedLibrary().then(async (r) => {
       setRemembered(r);
       if (r?.granted) {
@@ -158,6 +163,32 @@ export function App() {
     const first = [...list].sort((a, b) => a.title.localeCompare(b.title, 'fr'))[0];
     if (first) setCurrent({ kind: 'library', path: first.path });
   };
+
+  // --- Tablette : dossier local ------------------------------------------------
+  const openNative = async (folder: string) => {
+    try {
+      await openLibrary(await openNativeLibrary(folder));
+    } catch (e) {
+      setLibError((e as Error).message);
+    }
+  };
+
+  /** Relit l'autorisation d'accès aux fichiers ; au démarrage, ouvre le dernier dossier. */
+  const checkNative = async (open: boolean) => {
+    const status = await storageStatus();
+    setNativeAccess(status);
+    if (status.granted && open) await openNative(rememberedFolder());
+  };
+
+  // Retour des réglages système après avoir accordé l'accès.
+  useEffect(() => {
+    if (!isNative) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !library) checkNative(nativeAccess?.granted === false);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  });
 
   const choose = async (how: 'pick' | 'reopen' | 'dev') => {
     try {
@@ -632,7 +663,32 @@ export function App() {
           <>
             <h1>MySongBook</h1>
             <div className="sidebar-title">Bibliothèque</div>
-            {fsAccessSupported ? (
+            {isNative ? (
+              nativeAccess?.granted ? (
+                <form
+                  className="native-folder"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    openNative(nativeFolder);
+                  }}
+                >
+                  <label>
+                    Dossier ({nativeAccess.root}/…)
+                    <input value={nativeFolder} onChange={(e) => setNativeFolder(e.target.value)} />
+                  </label>
+                  <button className="sidebar-button primary" type="submit">
+                    Ouvrir
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <p className="sidebar-note">MySongBook doit pouvoir lire le dossier synchronisé avec Google Drive.</p>
+                  <button className="sidebar-button primary" onClick={() => requestStorage()}>
+                    Autoriser l’accès aux fichiers…
+                  </button>
+                </>
+              )
+            ) : fsAccessSupported ? (
               <button className="sidebar-button primary" onClick={() => choose('pick')}>
                 Ouvrir un dossier…
               </button>

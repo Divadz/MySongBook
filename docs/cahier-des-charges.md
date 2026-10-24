@@ -178,7 +178,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
-| BIB-01 | P1 | Ouvrir un dossier de bibliothèque (PC : choix du dossier Drive local ; tablette : dossier local synchronisé) et le mémoriser |
+| BIB-01 | P1 | Ouvrir un dossier de bibliothèque (PC : choix du dossier Drive local ; tablette : dossier local synchronisé) et le mémoriser. Tablette faite le 2026-10-25 : dossier du stockage partagé (par défaut `MySongBook`), autorisation « accès à tous les fichiers » demandée au premier lancement |
 | BIB-02 | P1 | Lister les morceaux par dossier, triés par titre ou par artiste ; afficher titre, artiste, tonalité |
 | BIB-03 | P1 | Recherche instantanée dans le titre, l'artiste, les tags et les paroles, insensible aux accents |
 | BIB-04 | P2 | Filtrer par tag ; afficher les tags d'un morceau ; éditer les tags |
@@ -194,7 +194,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | LEC-01 | P1 | Afficher un morceau en pages A4, découpage automatique, numéro de page sur total |
 | LEC-02 | P1 | Tourner les pages par tap sur le tiers droit / gauche de l'écran et par les touches de volume |
 | LEC-03 | P1 | Passer au morceau suivant / précédent du set à la fin / au début du morceau, avec indication du prochain titre |
-| LEC-04 | P1 | Maintenir l'écran allumé pendant la lecture |
+| LEC-04 | P1 | Maintenir l'écran allumé pendant la lecture. Fait le 2026-10-25 sur l'APK (écran allumé tant que l'appli est au premier plan) |
 | LEC-05 | P1 | Transposer par demi-tons (bouton + / −, choix direct de la tonalité) ; enregistrer dans le fichier via `{transpose:}` ; retour à l'original |
 | LEC-06 | P1 | Afficher sous le titre : artiste, tonalité, tempo ; les notes texte sont les `{comment:}` du fichier, rendus à leur place |
 | LEC-07 | P1 | Mode plein écran sans barre ; tap au centre pour afficher les commandes |

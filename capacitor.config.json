@@ -1,0 +1,8 @@
+{
+  "appId": "app.mysongbook",
+  "appName": "MySongBook",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#ffffff"
+  }
+}
