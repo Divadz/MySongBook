@@ -32,6 +32,8 @@ import type { CropScope } from '../render/PdfView';
 import { LibraryPanel } from './LibraryPanel';
 import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
+import { StageControls } from './StageControls';
+import { onStageKey, setStageActive } from '../core/stage';
 import type { DirectiveHelp } from './directives';
 import './app.css';
 
@@ -95,6 +97,9 @@ export function App() {
   const lastGood = useRef<SongModel | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const [showHelp, setShowHelp] = useState(false);
+  /** Mode scène : page seule en plein écran ; commandes affichées par un tap au centre. */
+  const [stage, setStage] = useState(false);
+  const [stageControls, setStageControls] = useState(false);
   /** Position du curseur à rétablir après une insertion. */
   const pendingCaret = useRef<number | null>(null);
   useLayoutEffect(() => {
@@ -497,14 +502,15 @@ export function App() {
     const compute = () => {
       const pw = device.pageWidth * MM_TO_PX;
       const ph = device.pageHeight * MM_TO_PX;
-      const s = Math.min((el.clientWidth - 24) / pw, (el.clientHeight - 24) / ph);
+      const margin = stage ? 0 : 24;
+      const s = Math.min((el.clientWidth - margin) / pw, (el.clientHeight - margin) / ph);
       setScale(Math.max(0.2, s));
     };
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [device]);
+  }, [device, stage]);
 
   const pageRef = useRef(page);
   pageRef.current = page;
@@ -540,6 +546,11 @@ export function App() {
       }
       const target = e.target as HTMLElement | null;
       if (target && /^(TEXTAREA|INPUT|SELECT)$/.test(target.tagName)) return;
+      if (e.key === 'Escape' && stageRef.current) {
+        e.preventDefault();
+        leaveStage();
+        return;
+      }
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         next();
@@ -609,7 +620,48 @@ export function App() {
     const x = (e.clientX - rect.left) / rect.width;
     if (x < 0.33) prev();
     else if (x > 0.67) next();
+    else if (stage) setStageControls((c) => !c);
   };
+
+  // --- Mode scène -------------------------------------------------------------
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
+  const enterStage = () => {
+    setMode('read');
+    setCropping(false);
+    setStageControls(false);
+    setStage(true);
+    setStageActive(true);
+  };
+  const leaveStage = () => {
+    setStage(false);
+    setStageControls(false);
+    setStageActive(false);
+  };
+  // Tablette : volume bas = page suivante, volume haut = page précédente, retour = commandes puis sortie.
+  const stageKeyRef = useRef<(key: string) => void>(() => {});
+  stageKeyRef.current = (key) => {
+    if (key === 'volumeDown') next();
+    else if (key === 'volumeUp') prev();
+    else if (key === 'back') {
+      if (stageControls) setStageControls(false);
+      else leaveStage();
+    }
+  };
+  useEffect(() => onStageKey((key) => stageKeyRef.current(key)), []);
+  // Sur PC, sortir du plein écran (Échap géré par le navigateur) quitte aussi la scène.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement && stageRef.current) {
+        setStage(false);
+        setStageControls(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  // Une page tournée referme les commandes.
+  useEffect(() => setStageControls(false), [page, current]);
 
   const isPdf = currentEntry?.kind === 'pdf';
   const scalerStyle = { transform: `scale(${scale})`, '--hair': `${Math.max(1, 1 / scale)}px` } as React.CSSProperties;
@@ -617,7 +669,7 @@ export function App() {
   const canKeepTranspose = extraTranspose !== 0 && library !== null && current?.kind === 'library';
 
   return (
-    <div className="app">
+    <div className={stage ? 'app stage' : 'app'}>
       {showSettings && (
         <aside className="sidebar wide">
           <DisplaySettings settings={settings} onChange={setSettings} onClose={() => setShowSettings(false)} />
@@ -788,6 +840,9 @@ export function App() {
           </>
           )}
           <span className="spacer" />
+          <button className="toggle" onClick={enterStage} title="Plein écran, page seule ; tap au centre pour les commandes">
+            Scène
+          </button>
           <button onClick={prev} disabled={page === 0 && !(playingSet && playing && playing.index > 0)}>
             ◀
           </button>
@@ -848,7 +903,26 @@ export function App() {
                 </div>
               )
             )}
+            {stage && playingSet && playing && page >= pageCount - 1 && playing.index < playingSet.items.length - 1 && (
+              <div className="stage-next">Ensuite : {titleOf(playingSet.items[playing.index + 1])}</div>
+            )}
           </div>
+          {stage && stageControls && (
+            <StageControls
+              title={song?.meta.title ?? currentEntry?.title ?? (current?.kind === 'note' ? 'Note' : '')}
+              page={page}
+              pageCount={pageCount}
+              set={playingSet}
+              index={playing?.index ?? 0}
+              titleOf={titleOf}
+              transpose={current?.kind !== 'note' && !isPdf && song ? song.totalTranspose : null}
+              keyName={song?.meta.key}
+              onTranspose={(d) => setExtraTranspose((t) => (d === 'reset' ? 0 : t + d))}
+              onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
+              onClose={() => setStageControls(false)}
+              onExit={leaveStage}
+            />
+          )}
         </div>
       </main>
     </div>

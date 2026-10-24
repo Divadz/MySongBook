@@ -192,12 +192,12 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
 | LEC-01 | P1 | Afficher un morceau en pages A4, découpage automatique, numéro de page sur total |
-| LEC-02 | P1 | Tourner les pages par tap sur le tiers droit / gauche de l'écran et par les touches de volume |
-| LEC-03 | P1 | Passer au morceau suivant / précédent du set à la fin / au début du morceau, avec indication du prochain titre |
+| LEC-02 | P1 | Tourner les pages par tap sur le tiers droit / gauche de l'écran et par les touches de volume. Fait le 2026-10-25 : volume bas = suivante, volume haut = précédente (en mode scène) |
+| LEC-03 | P1 | Passer au morceau suivant / précédent du set à la fin / au début du morceau, avec indication du prochain titre. Fait : « Ensuite : … » en bas de la dernière page en mode scène |
 | LEC-04 | P1 | Maintenir l'écran allumé pendant la lecture. Fait le 2026-10-25 sur l'APK (écran allumé tant que l'appli est au premier plan) |
 | LEC-05 | P1 | Transposer par demi-tons (bouton + / −, choix direct de la tonalité) ; enregistrer dans le fichier via `{transpose:}` ; retour à l'original |
 | LEC-06 | P1 | Afficher sous le titre : artiste, tonalité, tempo ; les notes texte sont les `{comment:}` du fichier, rendus à leur place |
-| LEC-07 | P1 | Mode plein écran sans barre ; tap au centre pour afficher les commandes |
+| LEC-07 | P1 | Mode plein écran sans barre ; tap au centre pour afficher les commandes. Fait le 2026-10-25 : bouton « Scène » ; commandes = transposition, liste du set (saut direct), sortie ; retour Android ferme les commandes puis quitte la scène ; Échap sur PC |
 | LEC-08 | P2 | Taille de police ajustable pour le morceau courant, mémorisée dans le fichier par `{textsize:}` ; facteur d'échelle global par appareil dans les réglages |
 | LEC-09 | P2 | Mode paroles seules (accords masqués) |
 | LEC-10 | P2 | Lecture d’un PDF : pages, zoom, recadrage mémorisé, rotation. Fait le 2026-10-22 : pages, recadrage manuel ou automatique enregistré dans le `.pdf.json`, commun à toutes les pages ou propre à une page ; rotation à faire |
