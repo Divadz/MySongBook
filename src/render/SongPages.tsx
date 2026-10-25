@@ -24,25 +24,43 @@ interface Props {
  * dans deux conteneurs cachés, à pleine largeur et à demi-largeur, pour être
  * mesurées ; deuxième passe : les unités sont réparties en pages et colonnes.
  *
- * Colonnes automatiques : deux colonnes quand tout tient dans une demi-page
- * sans changer d'allure (aucune ligne renvoyée, grilles à pleine taille,
- * portées non réduites). Réduire le zoom fait donc passer à deux colonnes,
- * et dézoomer davantage ne revient jamais à une seule.
+ * Colonnes automatiques : deux colonnes quand la plus longue ligne ne dépasse
+ * pas 75 % de la largeur utile de la page ; les lignes plus longues qu'une
+ * demi-page passent alors à la ligne (accords et paroles ensemble) ; les
+ * tablatures et grilles, qui ne peuvent pas passer à la ligne, doivent tenir
+ * dans la demi-page. Réduire
+ * le zoom fait donc passer à deux colonnes, et dézoomer davantage ne revient
+ * jamais à une seule.
  */
+/** Deux colonnes si la plus longue ligne ne dépasse pas cette part de la largeur utile de la page. */
+const TWO_COLUMNS_MAX_LINE = 0.75;
+
 /**
- * Une unité garde la même allure à demi-largeur : même hauteur (pas de ligne
- * renvoyée, portée ou image non réduite), rien de coupé, cases de grille de
- * même largeur.
+ * Largeur occupée par la plus longue ligne d'une unité mesurée à pleine
+ * largeur, en px : bord droit du texte (paroles, accords, grilles) et des
+ * cases de grille, depuis le bord gauche de l'unité. Une portée ou une image
+ * compte pour sa largeur.
  */
-function sameShape(full: HTMLElement | undefined, half: HTMLElement | undefined): boolean {
-  if (!full || !half) return true;
-  if (Math.abs(full.offsetHeight - half.offsetHeight) > 1) return false;
-  if (Array.from(half.querySelectorAll<HTMLElement>('*')).some((el) => el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0)) return false;
-  const cells = (root: HTMLElement) => Array.from(root.querySelectorAll<HTMLElement>('.grid-cell')).map((c) => c.offsetWidth);
-  const a = cells(full);
-  const b = cells(half);
-  return a.every((w, i) => (b[i] ?? 0) >= w - 1);
+function lineExtent(unit: HTMLElement | undefined, within?: string): number {
+  if (!unit) return 0;
+  const left = unit.getBoundingClientRect().left;
+  let right = left;
+  const roots = within ? Array.from(unit.querySelectorAll<HTMLElement>(within)) : [unit];
+  const range = document.createRange();
+  for (const root of roots) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent?.trim()) continue;
+      range.selectNodeContents(node);
+      right = Math.max(right, range.getBoundingClientRect().right);
+    }
+    for (const el of root.querySelectorAll('.grid-cell, svg, img')) right = Math.max(right, el.getBoundingClientRect().right);
+  }
+  return right - left;
 }
+
+/** Tablatures et grilles ne passent pas à la ligne : elles doivent tenir dans la colonne. */
+const RIGID = '.u-literal, .grid-row';
 
 export function SongPages({ song, settings, device, page, onPageCount, columns: forced }: Props) {
   const innerW = device.pageWidth - 2 * device.margin;
@@ -68,7 +86,13 @@ export function SongPages({ song, settings, device, page, onPageCount, columns: 
     const halfUnits = Array.from(half.children) as HTMLElement[];
     const heights = (list: HTMLElement[]) => units.map((_, i) => list[i]?.offsetHeight ?? 0);
     const columnHeight = innerH * MM_TO_PX;
-    const n: 1 | 2 = forced ?? (units.every((_, i) => sameShape(fullUnits[i], halfUnits[i])) ? 2 : 1);
+    const longest = Math.max(0, ...units.map((_, i) => lineExtent(fullUnits[i])));
+    const rigid = Math.max(0, ...units.map((_, i) => lineExtent(fullUnits[i], RIGID)));
+    // Les mesures sont dans la page mise à l'échelle : on compare aux largeurs affichées.
+    const fullWidth = full.getBoundingClientRect().width;
+    const halfWidth = half.getBoundingClientRect().width;
+    const fits = fullWidth > 0 && longest <= TWO_COLUMNS_MAX_LINE * fullWidth && rigid <= halfWidth;
+    const n: 1 | 2 = forced ?? (fits ? 2 : 1);
     const l = paginate(units, heights(n === 1 ? fullUnits : halfUnits), columnHeight, n);
     setColumns(n);
     setLayout(l);

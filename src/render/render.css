@@ -83,6 +83,10 @@
   line-height: 1.15;
   padding-right: 0.4em;
 }
+/* Bloc sans accord : la ligne d'accords garde sa hauteur, sans élargir le mot. */
+.u-line .chord.empty {
+  padding-right: 0;
+}
 .u-line.chords-only .pair {
   padding-right: 0.6em;
 }

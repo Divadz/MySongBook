@@ -194,16 +194,40 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       if (!settings.showChords && line.chordsOnly) return <div style={{ height: 0 }} />;
       return (
         <div className={`u-line ${line.chordsOnly ? 'chords-only' : ''}`} style={{ ...css(st, scale), ...spacing }}>
-          {line.items.map((it, i) => (
-            <span className="pair" key={i}>
-              {settings.showChords && (
-                <span className="chord" style={css(S.chords, scale, false)}>
-                  {it.chords || ' '}
+          {line.items.flatMap((it, i) => {
+            // Un bloc par mot, l'accord avec le premier : en colonne étroite, la ligne
+            // passe à la ligne entre deux mots, l'accord toujours au-dessus de sa syllabe.
+            const words = it.lyrics.match(/\S*\s*/g)?.filter(Boolean) ?? [];
+            if (words.length === 0) words.push('');
+            const beforeChord = settings.showChords && !!line.items[i + 1]?.chords;
+            // Accords sans paroles écrits d'un bloc (« [Gdim7/E | Edim7/C# | …] ») : un bloc par accord.
+            if (!it.lyrics.trim() && /\s/.test(it.chords.trim()) && settings.showChords) {
+              return it.chords
+                .trim()
+                .split(/\s+/)
+                .map((chord, k) => (
+                  <span className="pair" key={`${i}.${k}`}>
+                    <span className="chord" style={css(S.chords, scale, false)}>
+                      {chord}
+                    </span>
+                    <span className="lyrics" />
+                  </span>
+                ));
+            }
+            return words.map((word, k) => {
+              const chord = k === 0 ? it.chords : '';
+              return (
+                <span className="pair" key={`${i}.${k}`}>
+                  {settings.showChords && (
+                    <span className={chord ? 'chord' : 'chord empty'} style={css(S.chords, scale, false)}>
+                      {chord || ' '}
+                    </span>
+                  )}
+                  <span className="lyrics">{k === words.length - 1 ? spacedLyrics(word, beforeChord) : word}</span>
                 </span>
-              )}
-              <span className="lyrics">{spacedLyrics(it.lyrics, settings.showChords && !!line.items[i + 1]?.chords)}</span>
-            </span>
-          ))}
+              );
+            });
+          })}
         </div>
       );
     }
