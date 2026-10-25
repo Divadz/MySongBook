@@ -265,7 +265,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
-| IMP-01 | P1 | Script de migration : sauvegarde SongbookPro (`.sbpbackup`) des deux appareils → arborescence `songs/` et `sets/`, dédoublonnage par titre et contenu, rapport des morceaux à vérifier (`npm run import:sbp`). Fait le 2026-10-21 pour un appareil ; annotations au stylet : celles des PDF converties en `.pdf.ink.json` (format SongbookPro décodé : protobuf, page ramenée à 1000 de large) depuis le 2026-10-25 ; celles des morceaux ChordPro, liées à la mise en page de SongbookPro, restent brutes dans `.mysongbook/import/sbp-drawings.json` |
+| IMP-01 | P1 | Script de migration : sauvegarde SongbookPro (`.sbpbackup`) des deux appareils → arborescence `songs/` et `sets/`, dédoublonnage par titre et contenu, rapport des morceaux à vérifier (`npm run import:sbp`). Fait le 2026-10-21 pour un appareil ; annotations au stylet : celles des PDF converties en `.pdf.ink.json` (format SongbookPro décodé : protobuf, page ramenée à 1024 de large, hauteur proportionnelle) depuis le 2026-10-25 ; celles des morceaux ChordPro, liées à la mise en page de SongbookPro, restent brutes dans `.mysongbook/import/sbp-drawings.json` |
 | IMP-02 | P2 | Import de fichiers `.cho`, `.txt`, PDF par « Ouvrir avec » et par glisser-déposer (PC) |
 | IMP-03 | P3 | Import d'images (photo de partition) comme morceau PDF |
 

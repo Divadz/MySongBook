@@ -6,15 +6,16 @@
  *   3 : couleur ARGB                       4 : épaisseur (double)
  *   5 : page (0 = première)
  *
- * Pour un PDF, les coordonnées sont celles de la page mise à 1000 de large
- * (hauteur proportionnelle) : constaté sur une page A4 dont l'écriture
- * s'étend jusqu'à x = 995. Pour un morceau ChordPro, elles dépendent de la
- * mise en page de SongbookPro et ne sont pas convertibles.
+ * Pour un PDF, les coordonnées sont celles de la page mise à 1024 de large,
+ * hauteur dans la même proportion que la page : calé sur une grille A4 (Set
+ * BDN), dont les accords manuscrits tombent au centre des rangées sur toute
+ * la hauteur. Pour un morceau ChordPro, elles dépendent de la mise en page
+ * de SongbookPro et ne sont pas convertibles.
  */
 import { newStrokeId, serializeInk, simplify, type Stroke } from './ink';
 
 /** Largeur de page dans le repère des dessins SongbookPro. */
-const SBP_PAGE_WIDTH = 1000;
+const SBP_PAGE_WIDTH = 1024;
 
 interface Field {
   field: number;
