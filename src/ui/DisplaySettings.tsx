@@ -152,13 +152,6 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
           />
         </label>
         <label>
-          Colonnes
-          <select value={settings.columns} onChange={(e) => onChange({ ...settings, columns: Number(e.target.value) as 1 | 2 })}>
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-          </select>
-        </label>
-        <label>
           Portées ABC
           <span>
             <input
@@ -181,7 +174,7 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
       <p className="ds-note">
         Le décalage est en em : 1 em vaut à peu près la largeur d'un caractère à la taille du bloc. Les libellés de
         section suivent le décalage de leur section, plus le leur. Un morceau peut imposer sa taille par la directive {'{textsize}'} (taille du couplet ; libellés, refrains, ponts,
-        grilles, tablatures, accords et notes gardent leur proportion) et son nombre de colonnes par {'{columns}'}.
+        grilles, tablatures, accords et notes gardent leur proportion) et son nombre de colonnes par {'{columns}'} ; sinon, le morceau passe en deux colonnes quand tout tient dans une demi-page sans retour à la ligne (en dézoomant, par exemple).
       </p>
 
       <button className="ds-reset" onClick={() => onChange(defaultRenderSettings)}>

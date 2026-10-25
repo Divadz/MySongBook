@@ -509,13 +509,11 @@ export function App() {
     };
   }, [song, imageMap, library, current]);
 
-  // Le fichier peut imposer sa taille de police et ses colonnes.
-  const effectiveSettings = useMemo<RenderSettings>(() => {
-    if (!song) return settings;
-    const s = { ...applyTextsize(settings, song.meta.textsize, song.meta.textscale) };
-    if (song.meta.columns === 1 || song.meta.columns === 2) s.columns = song.meta.columns;
-    return s;
-  }, [song, settings]);
+  // Le fichier peut imposer sa taille de police.
+  const effectiveSettings = useMemo<RenderSettings>(
+    () => (song ? { ...applyTextsize(settings, song.meta.textsize, song.meta.textscale) } : settings),
+    [song, settings],
+  );
 
   // Échelle d'affichage : la page A4 tient dans la zone visible.
   useEffect(() => {
@@ -1056,7 +1054,14 @@ export function App() {
             ) : (
               renderSong && (
                 <div className="page-scaler" style={scalerStyle}>
-                  <SongPages song={renderSong} settings={effectiveSettings} device={device} page={page} onPageCount={onPageCount} />
+                  <SongPages
+                    song={renderSong}
+                    settings={effectiveSettings}
+                    device={device}
+                    page={page}
+                    onPageCount={onPageCount}
+                    columns={renderSong.meta.columns === 1 || renderSong.meta.columns === 2 ? renderSong.meta.columns : undefined}
+                  />
                 </div>
               )
             )}

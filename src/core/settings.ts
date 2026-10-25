@@ -92,8 +92,6 @@ export interface RenderSettings {
   sectionLabels: Record<LabelledSection, boolean>;
   /** Interligne (multiplicateur). */
   lineHeight: number;
-  /** Nombre de colonnes par page (1 ou 2). */
-  columns: 1 | 2;
   /** Espace entre colonnes, en mm. */
   columnGap: number;
   /** Afficher les accords (false = mode paroles seules). */
@@ -148,7 +146,6 @@ export const defaultRenderSettings: RenderSettings = {
   },
   sectionLabels: { verse: true, chorus: true, bridge: true, grid: true, tab: true, abc: true },
   lineHeight: 1.25,
-  columns: 1,
   columnGap: 8,
   showChords: true,
   abcScale: 1,
@@ -226,9 +223,11 @@ export function mergeRenderSettings(saved: Partial<RenderSettings> | null | unde
     }
     styles[k] = st;
   }
+  // « columns » : ancien réglage, remplacé par le choix automatique des colonnes.
+  const { columns: _columns, ...rest } = saved as Partial<RenderSettings> & { columns?: unknown };
   return {
     ...d,
-    ...saved,
+    ...rest,
     version: 3,
     styles,
     metaFields: { ...d.metaFields, ...(saved.metaFields ?? {}) },
