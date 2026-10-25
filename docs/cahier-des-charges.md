@@ -279,8 +279,8 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
-| SYN-01 | P1 | Phase 1 : aucune synchro dans l'application ; documentation de la configuration d'Autosync for Google Drive (gratuit) entre Google Drive et le dossier local de la tablette, dans les deux sens |
-| SYN-02 | P2 | Détection des conflits de fichiers laissés par l'outil de synchro (copies « conflit ») et affichage dans la bibliothèque |
+| SYN-01 | P1 | Phase 1 : aucune synchro dans l'application ; documentation de la configuration d'Autosync for Google Drive (gratuit) entre Google Drive et le dossier local de la tablette, dans les deux sens. Fait le 2026-10-25 : `docs/autosync.md` ; bibliothèque copiée dans `Mon Drive/MySongBook` ; l'appli relit liste, réglages et morceau affiché à chaque retour au premier plan |
+| SYN-02 | P2 | Détection des conflits de fichiers laissés par l'outil de synchro (copies « conflit ») et affichage dans la bibliothèque. Fait le 2026-10-25 : copies `(conflict …)` (Autosync), `[conflict]`, `conflicted copy` marquées CONFLIT, avec un avertissement en tête de la bibliothèque |
 | SYN-03 | P3 | Phase 3 : connexion Google Drive intégrée, choix du dossier, synchro à la demande et au lancement, dernière synchro affichée, hors ligne complet |
 
 # Contraintes e-ink

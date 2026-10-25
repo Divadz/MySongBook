@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { normalizeText, type SongEntry } from '../core/library';
+import { isConflictCopy, normalizeText, type SongEntry } from '../core/library';
 
 interface Props {
   name: string;
@@ -44,6 +44,7 @@ export function LibraryPanel({ name, entries, selected, onSelect, onCreate, onRe
 
   const searching = query.trim() !== '';
   const count = groups.reduce((n, g) => n + g.list.length, 0);
+  const conflicts = entries.filter((e) => isConflictCopy(e.path)).length;
 
   const toggle = (folder: string) =>
     setCollapsed((c) => {
@@ -111,6 +112,12 @@ export function LibraryPanel({ name, entries, selected, onSelect, onCreate, onRe
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      {conflicts > 0 && (
+        <div className="lib-conflicts">
+          {conflicts} fichier{conflicts > 1 ? 's' : ''} en conflit (marqué{conflicts > 1 ? 's' : ''} CONFLIT) : modifié
+          {conflicts > 1 ? 's' : ''} à la fois sur deux appareils. Garder la bonne version et supprimer l'autre.
+        </div>
+      )}
       <div className="lib-tools">
         <span>
           {count} morceau{count > 1 ? 'x' : ''}
@@ -142,6 +149,7 @@ export function LibraryPanel({ name, entries, selected, onSelect, onCreate, onRe
                       <span className="lib-title">
                         {e.title}
                         {e.kind === 'pdf' && <span className="lib-badge">PDF</span>}
+                        {isConflictCopy(e.path) && <span className="lib-badge conflict">CONFLIT</span>}
                       </span>
                       <span className="lib-sub">{[e.artist, e.key].filter(Boolean).join(' · ')}</span>
                     </li>

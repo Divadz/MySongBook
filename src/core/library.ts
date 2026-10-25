@@ -33,6 +33,13 @@ export interface SongEntry {
 }
 
 export const SONGS_DIR = 'songs/';
+
+/**
+ * Copie « conflit » créée par l'outil de synchro quand un fichier a été modifié
+ * des deux côtés : Autosync (« Titre (conflict 2026-10-25-10-15-23).cho »),
+ * Google Drive (« [conflict] »), Dropbox (« conflicted copy »).
+ */
+export const isConflictCopy = (path: string) => /\(conflict[^)]*\)|\[conflict\]|conflicted copy/i.test(path);
 export const SETTINGS_PATH = '.mysongbook/settings.json';
 
 const CHORDPRO_EXT = /\.(cho|chordpro|chopro|crd|chord|pro)$/i;

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { SONGS_DIR, normalizeText, type SongEntry } from '../core/library';
+import { SONGS_DIR, isConflictCopy, normalizeText, type SongEntry } from '../core/library';
 import type { SetItem, Setlist } from '../core/setlist';
 
 interface Props {
@@ -75,7 +75,10 @@ function SetList({ sets, onOpen, onCreate, onChange }: Props) {
         {sets.map((s) => (
           <li key={s.file} onClick={() => onOpen(s.file)}>
             <span className="set-main">
-              <span className="lib-title">{s.title}</span>
+              <span className="lib-title">
+                {s.title}
+                {isConflictCopy(s.file) && <span className="lib-badge conflict">CONFLIT</span>}
+              </span>
               <span className="lib-sub">
                 {[formatDate(s.date), `${s.items.filter((i) => i.kind === 'song').length} morceaux`].filter(Boolean).join(' · ')}
               </span>

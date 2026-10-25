@@ -166,6 +166,47 @@ export function App() {
     }
   }, []);
 
+  // Retour au premier plan : l'outil de synchro (Autosync, Google Drive) a pu
+  // changer des fichiers. On relit la liste, les réglages partagés et le morceau
+  // affiché, sauf s'il a des modifications non enregistrées.
+  const resyncRef = useRef<() => Promise<void>>(async () => {});
+  resyncRef.current = async () => {
+    if (!library) return;
+    await refresh(library);
+    try {
+      if (await library.exists(SETTINGS_PATH)) {
+        const shared = mergeRenderSettings(JSON.parse(await library.readText(SETTINGS_PATH)));
+        if (JSON.stringify(shared) !== JSON.stringify(settings)) setSettings(shared);
+      }
+    } catch {
+      /* réglages illisibles : on garde ceux en cours */
+    }
+    if (current?.kind !== 'library') return;
+    if (/\.pdf$/i.test(current.path)) {
+      const metaPath = pdfMetaPath(current.path);
+      const text = (await library.exists(metaPath)) ? await library.readText(metaPath).catch(() => '') : '';
+      const meta = parsePdfMeta(text);
+      if (JSON.stringify(meta) !== JSON.stringify(pdfMeta)) setPdfMeta(meta);
+      return;
+    }
+    const text = await library.readText(current.path).catch(() => null);
+    if (text === null || text === savedSource) return;
+    if (source === savedSource) {
+      setSource(text);
+      setSavedSource(text);
+      flash('Morceau mis à jour depuis la synchro.');
+    } else {
+      flash('Ce morceau a changé ailleurs ; vos modifications ne sont pas encore enregistrées.');
+    }
+  };
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') resyncRef.current();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   const openLibrary = async (lib: LibraryFS) => {
     setLibrary(lib);
     setLibError(null);
