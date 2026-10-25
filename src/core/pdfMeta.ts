@@ -39,6 +39,30 @@ export function withCrop(meta: PdfMeta, crop: Crop, pageIndex: number | 'all'): 
 
 export const FULL_PAGE: Crop = { top: 0, left: 0, width: 1, height: 1 };
 
+/** Plus petit cadre accessible au pincement (fraction de la page). */
+const MIN_ZOOM_CROP = 0.1;
+
+/**
+ * Recadrage après un pincement sur la page affichée : r = écart final / écart
+ * initial des doigts (> 1 : on agrandit), from / to = centre du geste au début
+ * et à la fin, en fractions de la zone affichée. Le point de la partition
+ * qui était sous les doigts reste sous les doigts.
+ */
+export function zoomCrop(c: Crop, r: number, from: { x: number; y: number }, to: { x: number; y: number }): Crop {
+  const width = Math.min(1, Math.max(MIN_ZOOM_CROP, c.width / r));
+  const height = Math.min(1, Math.max(MIN_ZOOM_CROP, c.height / r));
+  const clamp = (n: number, max: number) => Math.min(max, Math.max(0, n));
+  return {
+    left: clamp(c.left + from.x * c.width - to.x * width, 1 - width),
+    top: clamp(c.top + from.y * c.height - to.y * height, 1 - height),
+    width,
+    height,
+  };
+}
+
+/** Zoom d'un recadrage, en pourcentage de la largeur de page. */
+export const cropZoomPercent = (c: Crop) => Math.round(100 / c.width);
+
 export const pdfMetaPath = (pdfPath: string) => `${pdfPath}.json`;
 
 export function parsePdfMeta(text: string | undefined): PdfMeta {

@@ -16,9 +16,8 @@ interface Props {
   transpose: number | null;
   keyName?: string;
   onTranspose: (delta: number | 'reset') => void;
-  /** Zoom du texte de cet appareil, ou null si sans objet (PDF, note). */
-  fontScale: number | null;
-  onFontScale: (delta: number | 'reset') => void;
+  /** Zoom (taille du texte ou recadrage d'un PDF), ou null si sans objet (note). */
+  zoom: { label: string; onStep: (dir: 1 | -1) => void; onReset?: () => void } | null;
   onPlay: (index: number) => void;
   onClose: () => void;
   onExit: () => void;
@@ -57,16 +56,18 @@ export function StageControls(p: Props) {
           </div>
         )}
 
-        {p.fontScale !== null && (
+        {p.zoom && (
           <div className="stage-row">
-            <span className="stage-label">Taille du texte</span>
-            <button className="stage-button" onClick={() => p.onFontScale(-0.1)} aria-label="Texte plus petit">
+            <span className="stage-label">{p.zoom.label}</span>
+            <button className="stage-button" onClick={() => p.zoom?.onStep(-1)} aria-label="Dézoomer">
               −
             </button>
-            <button className="stage-button" onClick={() => p.onFontScale('reset')} title="Revenir à 100 %">
-              {Math.round(p.fontScale * 100)} %
-            </button>
-            <button className="stage-button" onClick={() => p.onFontScale(0.1)} aria-label="Texte plus grand">
+            {p.zoom.onReset && (
+              <button className="stage-button" onClick={p.zoom.onReset} title="Revenir à 100 %">
+                100 %
+              </button>
+            )}
+            <button className="stage-button" onClick={() => p.zoom?.onStep(1)} aria-label="Zoomer">
               +
             </button>
           </div>

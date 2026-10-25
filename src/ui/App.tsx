@@ -26,7 +26,19 @@ import { DisplaySettings } from './DisplaySettings';
 import { SetsPanel } from './SetsPanel';
 import { ConverterView } from './ConverterView';
 import { PdfView } from '../render/PdfView';
-import { cropForPage, parsePdfMeta, pdfMetaPath, serializePdfMeta, withCrop, type Crop, type PdfMeta } from '../core/pdfMeta';
+import {
+  FULL_PAGE,
+  cropForPage,
+  cropZoomPercent,
+  normalizeCrop,
+  parsePdfMeta,
+  pdfMetaPath,
+  serializePdfMeta,
+  withCrop,
+  zoomCrop,
+  type Crop,
+  type PdfMeta,
+} from '../core/pdfMeta';
 import type { CropScope } from '../render/PdfView';
 import { LibraryPanel } from './LibraryPanel';
 import { SongPages } from '../render/SongPages';
@@ -85,7 +97,7 @@ export function App() {
   /** Nom de l'appareil pour .mysongbook/device-<nom>.json. */
   const deviceNameRef = useRef(deviceName());
   /** Zoom en cours de pincement (aperçu) ou tout juste appliqué, affiché en mode scène. */
-  const [zoomBadge, setZoomBadge] = useState<number | null>(null);
+  const [zoomBadge, setZoomBadge] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [scale, setScale] = useState(1);
@@ -319,17 +331,20 @@ export function App() {
   };
 
   /** Fin du recadrage d'un PDF : le cadre est écrit dans le .pdf.json voisin. */
-  const finishCrop = async (crop: Crop | null, scope: CropScope) => {
-    setCropping(false);
-    if (!crop || !library || current?.kind !== 'library') return;
+  const saveCrop = async (crop: Crop, scope: CropScope, notify = true) => {
+    if (!library || current?.kind !== 'library') return;
     const meta = withCrop(pdfMeta, crop, scope === 'all' ? 'all' : page);
+    setPdfMeta(meta);
     try {
       await library.writeText(pdfMetaPath(current.path), serializePdfMeta(meta));
-      setPdfMeta(meta);
-      flash('Recadrage enregistré.');
+      if (notify) flash('Recadrage enregistré.');
     } catch (e) {
       flash(`Échec de l'enregistrement : ${(e as Error).message}`);
     }
+  };
+  const finishCrop = async (crop: Crop | null, scope: CropScope) => {
+    setCropping(false);
+    if (crop) await saveCrop(crop, scope);
   };
 
   /** Résultat du convertisseur : nouveau fichier, ou brouillon à télécharger sans bibliothèque. */
@@ -683,66 +698,120 @@ export function App() {
     }, 800);
   };
   const badgeTimer = useRef<number>();
-  const showZoom = (value: number | null, hideAfter?: number) => {
-    setZoomBadge(value);
+  const showZoom = (label: string | null, hideAfter?: number) => {
+    setZoomBadge(label);
     window.clearTimeout(badgeTimer.current);
     if (hideAfter) badgeTimer.current = window.setTimeout(() => setZoomBadge(null), hideAfter);
   };
-  // Pincement à deux doigts : aperçu du zoom pendant le geste, mise en page au lâcher
-  // (repaginer à chaque mouvement serait trop lent sur l'e-ink).
-  const pinch = useRef({ points: new Map<number, { x: number; y: number }>(), start: 0, base: 1, value: 0, quietUntil: 0 });
-  const pinchDistance = () => {
+  const textLabel = (v: number) => `Texte ${Math.round(v * 100)} %`;
+  const pdfLabel = (c: Crop) => `Zoom ${cropZoomPercent(c)} %`;
+
+  /**
+   * PDF : le zoom est un recadrage, enregistré dans le .pdf.json (donc commun aux
+   * appareils) : celui de la page si elle a le sien, sinon celui de toutes les pages.
+   */
+  const setPdfZoom = (crop: Crop) => saveCrop(normalizeCrop(crop), pdfMeta.pages?.[String(page + 1)] ? 'page' : 'all', false);
+  const pdfFrame = () => viewportRef.current?.querySelector('.pdf-frame')?.getBoundingClientRect() ?? null;
+  const fraction = (pt: { x: number; y: number }, r: DOMRect) => ({ x: (pt.x - r.left) / r.width, y: (pt.y - r.top) / r.height });
+
+  // Pincement à deux doigts : aperçu de la valeur pendant le geste, mise en page au
+  // lâcher (repaginer ou redessiner le PDF à chaque mouvement serait trop lent sur l'e-ink).
+  // Texte : facteur d'échelle de l'appareil. PDF : recadrage autour des doigts, qui
+  // suit aussi leur déplacement.
+  const pinch = useRef({
+    points: new Map<number, { x: number; y: number }>(),
+    start: 0,
+    from: { x: 0, y: 0 },
+    frame: null as DOMRect | null,
+    baseScale: 1,
+    scale: 1,
+    baseCrop: FULL_PAGE,
+    crop: FULL_PAGE,
+    quietUntil: 0,
+  });
+  const pinchGeometry = () => {
     const [a, b] = [...pinch.current.points.values()];
-    return Math.hypot(a.x - b.x, a.y - b.y);
+    return { distance: Math.hypot(a.x - b.x, a.y - b.y), center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
   };
   const onPointerDown = (e: React.PointerEvent) => {
     if (!canZoom || e.pointerType !== 'touch') return;
     const p = pinch.current;
     p.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (p.points.size === 2) {
-      p.start = pinchDistance();
-      p.base = device.fontScale;
-      p.value = device.fontScale;
-      showZoom(device.fontScale);
+    if (p.points.size !== 2) return;
+    const g = pinchGeometry();
+    p.start = g.distance;
+    p.from = g.center;
+    if (isPdf) {
+      p.frame = pdfFrame();
+      if (!p.frame) {
+        p.start = 0;
+        return;
+      }
+      p.baseCrop = p.crop = pageCrop;
+      showZoom(pdfLabel(pageCrop));
+    } else {
+      p.baseScale = p.scale = device.fontScale;
+      showZoom(textLabel(device.fontScale));
     }
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const p = pinch.current;
     if (!p.points.has(e.pointerId)) return;
     p.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (p.points.size === 2 && p.start > 0) {
-      const value = clampFontScale((p.base * pinchDistance()) / p.start);
-      if (value !== p.value) {
-        p.value = value;
-        showZoom(value);
+    if (p.points.size !== 2 || p.start <= 0) return;
+    const g = pinchGeometry();
+    const ratio = g.distance / p.start;
+    if (isPdf && p.frame) {
+      p.crop = zoomCrop(p.baseCrop, ratio, fraction(p.from, p.frame), fraction(g.center, p.frame));
+      showZoom(pdfLabel(p.crop));
+    } else {
+      const value = clampFontScale(p.baseScale * ratio);
+      if (value !== p.scale) {
+        p.scale = value;
+        showZoom(textLabel(value));
       }
     }
   };
   const onPointerUp = (e: React.PointerEvent) => {
     const p = pinch.current;
     if (!p.points.delete(e.pointerId)) return;
-    if (p.start > 0) {
-      // Fin du geste : le tap qui suit le lâcher ne doit pas tourner la page.
-      p.start = 0;
-      p.quietUntil = Date.now() + 500;
-      if (p.value !== device.fontScale) setFontScale(p.value);
-      showZoom(p.value, 1200);
+    if (p.start <= 0) return;
+    // Fin du geste : le tap qui suit le lâcher ne doit pas tourner la page.
+    p.start = 0;
+    p.quietUntil = Date.now() + 500;
+    if (isPdf) {
+      if (p.crop !== p.baseCrop) setPdfZoom(p.crop);
+      showZoom(pdfLabel(p.crop), 1200);
+    } else {
+      if (p.scale !== device.fontScale) setFontScale(p.scale);
+      showZoom(textLabel(p.scale), 1200);
+    }
+  };
+  /** Un cran de zoom (boutons des commandes, Ctrl + molette), autour d'un point de la zone affichée. */
+  const zoomStep = (dir: 1 | -1, at = { x: 0.5, y: 0.5 }) => {
+    if (isPdf) {
+      const crop = zoomCrop(pageCrop, dir > 0 ? 1.15 : 1 / 1.15, at, at);
+      setPdfZoom(crop);
+      showZoom(pdfLabel(crop), 1200);
+    } else {
+      const value = clampFontScale(device.fontScale + dir * 0.1);
+      setFontScale(value);
+      showZoom(textLabel(value), 1200);
     }
   };
   // PC : Ctrl + molette (ou pincement du pavé tactile) en mode scène.
   const onWheel = (e: React.WheelEvent) => {
     if (!canZoom || !e.ctrlKey) return;
-    const value = clampFontScale(device.fontScale + (e.deltaY < 0 ? 0.05 : -0.05));
-    setFontScale(value);
-    showZoom(value, 1200);
+    const frame = isPdf ? pdfFrame() : null;
+    zoomStep(e.deltaY < 0 ? 1 : -1, frame ? fraction({ x: e.clientX, y: e.clientY }, frame) : undefined);
   };
 
   // Une page tournée referme les commandes.
   useEffect(() => setStageControls(false), [page, current]);
 
   const isPdf = currentEntry?.kind === 'pdf';
-  /** Zoom du texte : en mode scène, sur les morceaux ChordPro (un PDF garde sa mise en page). */
-  const canZoom = stage && !isPdf && current?.kind !== 'note';
+  /** Zoom en mode scène : taille du texte d'un morceau ChordPro, recadrage d'un PDF. */
+  const canZoom = stage && current?.kind !== 'note';
   const scalerStyle = { transform: `scale(${scale})`, '--hair': `${Math.max(1, 1 / scale)}px` } as React.CSSProperties;
   const pageCrop = useMemo(() => cropForPage(pdfMeta, page), [pdfMeta, page]);
   const canKeepTranspose = extraTranspose !== 0 && library !== null && current?.kind === 'library';
@@ -994,7 +1063,7 @@ export function App() {
             {stage && playingSet && playing && page >= pageCount - 1 && playing.index < playingSet.items.length - 1 && (
               <div className="stage-next">Ensuite : {titleOf(playingSet.items[playing.index + 1])}</div>
             )}
-            {stage && zoomBadge !== null && <div className="stage-zoom">Texte {Math.round(zoomBadge * 100)} %</div>}
+            {stage && zoomBadge !== null && <div className="stage-zoom">{zoomBadge}</div>}
           </div>
           {stage && stageControls && (
             <StageControls
@@ -1006,8 +1075,13 @@ export function App() {
               titleOf={titleOf}
               transpose={current?.kind !== 'note' && !isPdf && song ? song.totalTranspose : null}
               keyName={song?.meta.key}
-              fontScale={canZoom ? device.fontScale : null}
-              onFontScale={(d) => setFontScale(d === 'reset' ? 1 : device.fontScale + d)}
+              zoom={
+                !canZoom
+                  ? null
+                  : isPdf
+                    ? { label: pdfLabel(pageCrop), onStep: zoomStep }
+                    : { label: textLabel(device.fontScale), onStep: zoomStep, onReset: () => setFontScale(1) }
+              }
               onTranspose={(d) => setExtraTranspose((t) => (d === 'reset' ? 0 : t + d))}
               onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
               onClose={() => setStageControls(false)}
