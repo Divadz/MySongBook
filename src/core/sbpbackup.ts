@@ -9,6 +9,8 @@
 import { fileNameFromTitle, SONGS_DIR } from './library';
 import { serializeSet, SETS_DIR, type SetItem } from './setlist';
 import { markAnnotations } from './annotations';
+import { inkPath } from './ink';
+import { sbpDrawingsToPdfInk } from './sbpInk';
 
 interface SbpSong {
   Id: number;
@@ -273,6 +275,18 @@ export function convertSbpBackup(dataFile: string, merge: Record<string, string>
     counts.sets++;
   }
 
+  // Dessins des PDF convertis en annotations (.pdf.ink.json, pages A4 supposées) ;
+  // ceux des morceaux ChordPro dépendent de la mise en page de SongbookPro et restent bruts.
+  const inkConverted: string[] = [];
+  const byPdf = new Map<string, string[]>();
+  for (const d of drawings) if (/\.pdf$/i.test(d.song)) byPdf.set(d.song, [...(byPdf.get(d.song) ?? []), d.data]);
+  for (const [pdf, datas] of byPdf) {
+    const text = sbpDrawingsToPdfInk(datas);
+    if (!text) continue;
+    files.push({ path: inkPath(pdf), text });
+    inkConverted.push(`- \`${pdf.slice(SONGS_DIR.length)}\``);
+  }
+
   const report = [
     `Morceaux ChordPro : ${counts.chordpro}, PDF : ${counts.pdf}, sets : ${counts.sets}, morceaux supprimés ignorés : ${counts.skipped}.`,
     '',
@@ -289,9 +303,12 @@ export function convertSbpBackup(dataFile: string, merge: Record<string, string>
     [...unknown].map(([name, songs]) => `- \`{${name}}\` : ${[...songs].join(', ')}`),
   );
   section('Sets', setReport);
+  section('Annotations au stylet des PDF, converties (.pdf.ink.json)', inkConverted);
   section(
-    'Annotations au stylet, gardées brutes dans .mysongbook/import/sbp-drawings.json',
-    drawings.map((d) => `- \`${d.song.slice(SONGS_DIR.length)}\`${d.set ? ` (dans le set « ${d.set} »)` : ''}`),
+    'Annotations au stylet des morceaux ChordPro, non convertibles, gardées brutes dans .mysongbook/import/sbp-drawings.json',
+    drawings
+      .filter((d) => !/\.pdf$/i.test(d.song))
+      .map((d) => `- \`${d.song.slice(SONGS_DIR.length)}\`${d.set ? ` (dans le set « ${d.set} »)` : ''}`),
   );
   return { files, drawings, report, counts };
 }
