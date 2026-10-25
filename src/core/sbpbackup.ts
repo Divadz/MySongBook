@@ -8,6 +8,7 @@
  */
 import { fileNameFromTitle, SONGS_DIR } from './library';
 import { serializeSet, SETS_DIR, type SetItem } from './setlist';
+import { markAnnotations } from './annotations';
 
 interface SbpSong {
   Id: number;
@@ -171,6 +172,7 @@ export function convertSbpBackup(dataFile: string, merge: Record<string, string>
   const duplicates: string[] = [];
   const multiFolder: string[] = [];
   const capo: string[] = [];
+  const annotated: string[] = [];
   const unknown = new Map<string, Set<string>>();
 
   const deletedTitle = new Map<number, string>();
@@ -212,7 +214,10 @@ export function convertSbpBackup(dataFile: string, merge: Record<string, string>
       const transpose = (song.KeyShift || 0) - (song.Capo || 0);
       if (song.Capo) capo.push(`- ${title} : capo ${song.Capo}, transposition ${song.KeyShift} → \`{transpose: ${transpose}}\``);
       path = uniquePath(dir, fileNameFromTitle(title).replace(/\.cho$/, ''), '.cho');
-      files.push({ path, text: chordproText(song, transpose) });
+      // Textes écrits entre crochets d'accord (« [(REFRAIN)] ») : annotations ChordPro [*…].
+      const { text, changed } = markAnnotations(chordproText(song, transpose));
+      if (changed) annotated.push(`- ${title} : ${changed}`);
+      files.push({ path, text });
       shiftById.set(song.Id, transpose);
       counts.chordpro++;
       for (const m of song.content.matchAll(/\{\s*([a-z_]+)/gi)) {
@@ -278,6 +283,7 @@ export function convertSbpBackup(dataFile: string, merge: Record<string, string>
   section('Doublons', duplicates);
   section('Morceaux rangés dans plusieurs dossiers (premier dossier retenu)', multiFolder);
   section('Capo converti en transposition', capo);
+  section("Textes entre crochets d'accord marqués comme annotations ([*…])", annotated);
   section(
     'Directives propres à SongbookPro, laissées telles quelles',
     [...unknown].map(([name, songs]) => `- \`{${name}}\` : ${[...songs].join(', ')}`),

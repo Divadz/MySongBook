@@ -48,19 +48,35 @@ export function spellingFor(key: string | undefined, delta: number): Spelling {
   return keySpelling((semitone(m[1], m[2]) + delta + 120) % 12, !!m[3]);
 }
 
-const CHORD_RE = /^([A-G])([#b♯♭]?)([^/]*?)(?:\/([A-G])([#b♯♭]?))?$/;
+/**
+ * Accord : fondamentale, suffixe, basse facultative. Admet aussi la basse
+ * seule (« /Db », changement de basse) et une barre sans basse (« Bb/ »).
+ */
+const CHORD_RE = /^(?:([A-G])([#b♯♭]?)([^/]*?))?(?:\/(?:([A-G])([#b♯♭]?))?)?$/;
 /** Suffixes d'accord admis (« m7b5 », « maj7 », « sus4 », « add9 ») : « CHORUS » n'est pas un accord C. */
 const SUFFIX_RE = /^(?:[Mm]aj|[Mm]in|[Dd]im|[Aa]ug|[Ss]us|[Aa]dd|alt|omit|no|m|M|[0-9]|[#b♯♭+\-°øΔ^*'.,|])*$/;
+/** « Sans accord » : un accord, qui ne se transpose pas. */
+const NO_CHORD_RE = /^N\.?C\.?$/i;
 
-/** Un accord (« Bb/D », « F#m7 ») ; null s'il n'est pas reconnu. */
+function parseChord(token: string) {
+  const m = CHORD_RE.exec(token);
+  // Il faut une fondamentale ou une basse ; « / » seul n'est pas un accord.
+  if (!m || (!m[1] && !m[4]) || (m[1] && !SUFFIX_RE.test(m[3]))) return null;
+  return { root: m[1], acc: m[2], suffix: m[3] ?? '', slash: token.includes('/'), bass: m[4], bassAcc: m[5] };
+}
+
+/** Le mot est-il un accord (« Bb/D », « F#m7 », « Ebmaj7 », « /Db », « N.C. ») ? */
+export function isChord(token: string): boolean {
+  return NO_CHORD_RE.test(token) || parseChord(token) !== null;
+}
+
+/** Un accord (« Bb/D », « F#m7 », « /Db ») ; null s'il n'est pas reconnu. */
 function transposeOne(chord: string, delta: number, spelling: Spelling): string | null {
-  const m = CHORD_RE.exec(chord);
-  if (!m) return null;
-  const [, l, a, suffix, bl, ba] = m;
-  if (!SUFFIX_RE.test(suffix)) return null;
-  const root = noteName(semitone(l, a) + delta, spelling);
-  const bass = bl ? `/${noteName(semitone(bl, ba) + delta, spelling)}` : '';
-  return `${root}${suffix}${bass}`;
+  const c = parseChord(chord);
+  if (!c) return null;
+  const root = c.root ? `${noteName(semitone(c.root, c.acc) + delta, spelling)}${c.suffix}` : '';
+  const bass = c.bass ? noteName(semitone(c.bass, c.bassAcc) + delta, spelling) : '';
+  return `${root}${c.slash ? '/' : ''}${bass}`;
 }
 
 /**
