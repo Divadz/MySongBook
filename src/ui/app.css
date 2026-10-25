@@ -1093,11 +1093,61 @@ body,
 }
 
 /* --- Écran tactile (tablette) : interface agrandie ---------------------------- */
+:root {
+  /* Agrandissement de la barre du haut et de la barre latérale. */
+  --ui-zoom: 1;
+}
 @media (pointer: coarse) {
+  :root {
+    --ui-zoom: 2.9;
+  }
   .sidebar,
-  .toolbar,
+  .toolbar {
+    zoom: var(--ui-zoom);
+  }
   .converter,
   .editor-pane {
     zoom: 1.45;
   }
+}
+
+/* --- Menu ☰ du mode scène : barres affichées par-dessus la page ------------- */
+.stage-burger {
+  display: none;
+}
+.app.stage .stage-burger {
+  display: block;
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 40;
+  width: 64px;
+  height: 64px;
+  font-size: 36px;
+  line-height: 1;
+  color: #000;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 8px;
+}
+.app.stage.menu .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  /* Place du bouton ☰ (les longueurs sont agrandies par le zoom de la barre). */
+  padding-left: calc(80px / var(--ui-zoom));
+  border-bottom: 2px solid #000;
+}
+.app.stage.menu .sidebar:not([hidden]) {
+  display: flex;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  top: calc(var(--toolbar-h, 0px) / var(--ui-zoom));
+  z-index: 30;
+  border-right: 2px solid #000;
 }

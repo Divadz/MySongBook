@@ -20,7 +20,8 @@ interface Props {
   zoom: { label: string; onStep: (dir: 1 | -1) => void; onReset?: () => void } | null;
   onPlay: (index: number) => void;
   onClose: () => void;
-  onExit: () => void;
+  /** Absent sur la tablette, toujours en mode scène. */
+  onExit?: () => void;
 }
 
 export function StageControls(p: Props) {
@@ -86,11 +87,13 @@ export function StageControls(p: Props) {
           </ol>
         )}
 
-        <div className="stage-row end">
-          <button className="stage-button primary" onClick={p.onExit}>
-            Quitter la scène
-          </button>
-        </div>
+        {p.onExit && (
+          <div className="stage-row end">
+            <button className="stage-button primary" onClick={p.onExit}>
+              Quitter la scène
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

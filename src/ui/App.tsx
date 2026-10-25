@@ -114,7 +114,11 @@ export function App() {
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const [showHelp, setShowHelp] = useState(false);
   /** Mode scène : page seule en plein écran ; commandes affichées par un tap au centre. */
-  const [stage, setStage] = useState(false);
+  // Sur la tablette, toujours en mode scène ; le menu ☰ affiche les barres par-dessus la page.
+  const [stage, setStage] = useState(isNative);
+  const [menu, setMenu] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarHeight, setToolbarHeight] = useState(0);
   const [stageControls, setStageControls] = useState(false);
   /** Position du curseur à rétablir après une insertion. */
   const pendingCaret = useRef<number | null>(null);
@@ -636,6 +640,8 @@ export function App() {
 
   const onViewportClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (cropping || Date.now() < pinch.current.quietUntil) return;
+    // Menu ouvert : un tap sur la page le referme, sans tourner la page.
+    if (menu) return setMenu(false);
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     if (x < 0.33) prev();
@@ -656,16 +662,30 @@ export function App() {
   const leaveStage = () => {
     setStage(false);
     setStageControls(false);
+    setMenu(false);
     setStageActive(false);
   };
+  useEffect(() => {
+    if (isNative) setStageActive(true);
+  }, []);
+  // Le menu se place sous la barre du haut, dont la hauteur dépend de la largeur.
+  useLayoutEffect(() => {
+    const el = toolbarRef.current;
+    if (!el || !menu) return;
+    const ro = new ResizeObserver(() => setToolbarHeight(el.getBoundingClientRect().height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [menu]);
   // Tablette : volume bas = page suivante, volume haut = page précédente, retour = commandes puis sortie.
   const stageKeyRef = useRef<(key: string) => void>(() => {});
   stageKeyRef.current = (key) => {
     if (key === 'volumeDown') next();
     else if (key === 'volumeUp') prev();
     else if (key === 'back') {
-      if (stageControls) setStageControls(false);
-      else leaveStage();
+      // Sur scène, le bouton retour ne fait jamais quitter l'appli par erreur.
+      if (menu) setMenu(false);
+      else if (stageControls) setStageControls(false);
+      else if (!isNative) leaveStage();
     }
   };
   useEffect(() => onStageKey((key) => stageKeyRef.current(key)), []);
@@ -808,8 +828,12 @@ export function App() {
     zoomStep(e.deltaY < 0 ? 1 : -1, frame ? fraction({ x: e.clientX, y: e.clientY }, frame) : undefined);
   };
 
-  // Une page tournée referme les commandes.
+  // Une page tournée referme les commandes ; un morceau choisi referme le menu (sauf pour l'éditer).
   useEffect(() => setStageControls(false), [page, current]);
+  useEffect(() => {
+    if (mode !== 'edit') setMenu(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current]);
 
   const isPdf = currentEntry?.kind === 'pdf';
   /** Clé du zoom propre au morceau : chemin dans la bibliothèque, ou échantillon. */
@@ -823,7 +847,15 @@ export function App() {
   const canKeepTranspose = extraTranspose !== 0 && library !== null && current?.kind === 'library';
 
   return (
-    <div className={stage ? 'app stage' : 'app'}>
+    <div
+      className={['app', stage && 'stage', stage && menu && 'menu'].filter(Boolean).join(' ')}
+      style={{ '--toolbar-h': `${toolbarHeight}px` } as React.CSSProperties}
+    >
+      {stage && (
+        <button className="stage-burger" onClick={() => setMenu((m) => !m)} aria-label={menu ? 'Fermer le menu' : 'Menu'}>
+          {menu ? '×' : '☰'}
+        </button>
+      )}
       {showSettings && (
         <aside className="sidebar wide">
           <DisplaySettings settings={settings} onChange={setSettings} onClose={() => setShowSettings(false)} />
@@ -935,7 +967,7 @@ export function App() {
       </aside>
 
       <main className="main">
-        <div className="toolbar">
+        <div className="toolbar" ref={toolbarRef}>
           <span className="song-title">
             {song?.meta.title ?? currentEntry?.title ?? '…'}
             {dirty && <span className="dirty" title="Modifications non enregistrées"> ●</span>}
@@ -994,9 +1026,16 @@ export function App() {
           </>
           )}
           <span className="spacer" />
-          <button className="toggle" onClick={enterStage} title="Plein écran, page seule ; tap au centre pour les commandes">
-            Scène
-          </button>
+          {!isNative && !stage && (
+            <button className="toggle" onClick={enterStage} title="Plein écran, page seule ; tap au centre pour les commandes">
+              Scène
+            </button>
+          )}
+          {!isNative && stage && (
+            <button className="toggle" onClick={leaveStage} title="Quitter la scène (Échap)">
+              Quitter la scène
+            </button>
+          )}
           <button onClick={prev} disabled={page === 0 && !(playingSet && playing && playing.index > 0)}>
             ◀
           </button>
@@ -1098,7 +1137,7 @@ export function App() {
               onTranspose={(d) => setExtraTranspose((t) => (d === 'reset' ? 0 : t + d))}
               onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
               onClose={() => setStageControls(false)}
-              onExit={leaveStage}
+              onExit={isNative ? undefined : leaveStage}
             />
           )}
         </div>
