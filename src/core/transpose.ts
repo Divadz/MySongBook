@@ -49,12 +49,15 @@ export function spellingFor(key: string | undefined, delta: number): Spelling {
 }
 
 const CHORD_RE = /^([A-G])([#b♯♭]?)([^/]*?)(?:\/([A-G])([#b♯♭]?))?$/;
+/** Suffixes d'accord admis (« m7b5 », « maj7 », « sus4 », « add9 ») : « CHORUS » n'est pas un accord C. */
+const SUFFIX_RE = /^(?:[Mm]aj|[Mm]in|[Dd]im|[Aa]ug|[Ss]us|[Aa]dd|alt|omit|no|m|M|[0-9]|[#b♯♭+\-°øΔ^*'.,|])*$/;
 
 /** Un accord (« Bb/D », « F#m7 ») ; null s'il n'est pas reconnu. */
 function transposeOne(chord: string, delta: number, spelling: Spelling): string | null {
   const m = CHORD_RE.exec(chord);
   if (!m) return null;
   const [, l, a, suffix, bl, ba] = m;
+  if (!SUFFIX_RE.test(suffix)) return null;
   const root = noteName(semitone(l, a) + delta, spelling);
   const bass = bl ? `/${noteName(semitone(bl, ba) + delta, spelling)}` : '';
   return `${root}${suffix}${bass}`;
