@@ -107,8 +107,10 @@ export interface DeviceSettings {
   pageWidth: number;
   pageHeight: number;
   margin: number;
-  /** Facteur d'échelle global des polices propre à l'appareil. */
+  /** Facteur d'échelle des polices de l'appareil, pour les morceaux sans zoom propre. */
   fontScale: number;
+  /** Zoom de chaque morceau sur cet appareil (pincement en mode scène), par chemin dans la bibliothèque. */
+  songZoom: Record<string, number>;
 }
 
 const style = (size: number, bold = false, italic = false, indent = 0, underline = false): TextStyle => ({
@@ -158,6 +160,7 @@ export const defaultDeviceSettings: DeviceSettings = {
   pageHeight: 297,
   margin: 12,
   fontScale: 1,
+  songZoom: {},
 };
 
 /** Style d'une section ; lignes hors section et sections personnalisées suivent le couplet. */

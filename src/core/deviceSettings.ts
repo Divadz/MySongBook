@@ -33,10 +33,16 @@ export const deviceSettingsPath = (name: string) => `.mysongbook/device-${name}.
 
 export function mergeDeviceSettings(saved: Partial<DeviceSettings> | null | undefined): DeviceSettings {
   const d = { ...defaultDeviceSettings, ...(saved && typeof saved === 'object' ? saved : {}) };
-  for (const k of Object.keys(defaultDeviceSettings) as (keyof DeviceSettings)[]) {
-    if (typeof d[k] !== 'number' || !Number.isFinite(d[k])) d[k] = defaultDeviceSettings[k];
+  const num = (n: unknown, fallback: number) => (typeof n === 'number' && Number.isFinite(n) ? n : fallback);
+  d.pageWidth = num(d.pageWidth, defaultDeviceSettings.pageWidth);
+  d.pageHeight = num(d.pageHeight, defaultDeviceSettings.pageHeight);
+  d.margin = num(d.margin, defaultDeviceSettings.margin);
+  d.fontScale = clampFontScale(num(d.fontScale, 1));
+  const zoom: Record<string, number> = {};
+  if (d.songZoom && typeof d.songZoom === 'object') {
+    for (const [path, v] of Object.entries(d.songZoom)) if (typeof v === 'number' && Number.isFinite(v)) zoom[path] = clampFontScale(v);
   }
-  d.fontScale = clampFontScale(d.fontScale);
+  d.songZoom = zoom;
   return d;
 }
 

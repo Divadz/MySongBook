@@ -682,9 +682,13 @@ export function App() {
   }, []);
   // --- Zoom du texte, propre à l'appareil (pincement en mode scène) -------------
   const saveDeviceTimer = useRef<number>();
+  /** Zoom du morceau courant sur cet appareil ; 100 % efface l'entrée. */
   const setFontScale = (value: number) => {
-    const fontScale = clampFontScale(value);
-    const next = { ...device, fontScale };
+    const scale = clampFontScale(value);
+    const songZoom = { ...device.songZoom };
+    if (scale === device.fontScale) delete songZoom[zoomKey];
+    else songZoom[zoomKey] = scale;
+    const next = { ...device, songZoom };
     setDevice(next);
     window.clearTimeout(saveDeviceTimer.current);
     saveDeviceTimer.current = window.setTimeout(async () => {
@@ -748,8 +752,8 @@ export function App() {
       p.baseCrop = p.crop = pageCrop;
       showZoom(pdfLabel(pageCrop));
     } else {
-      p.baseScale = p.scale = device.fontScale;
-      showZoom(textLabel(device.fontScale));
+      p.baseScale = p.scale = songScale;
+      showZoom(textLabel(songScale));
     }
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -781,7 +785,7 @@ export function App() {
       if (p.crop !== p.baseCrop) setPdfZoom(p.crop);
       showZoom(pdfLabel(p.crop), 1200);
     } else {
-      if (p.scale !== device.fontScale) setFontScale(p.scale);
+      if (p.scale !== songScale) setFontScale(p.scale);
       showZoom(textLabel(p.scale), 1200);
     }
   };
@@ -792,7 +796,7 @@ export function App() {
       setPdfZoom(crop);
       showZoom(pdfLabel(crop), 1200);
     } else {
-      const value = clampFontScale(device.fontScale + dir * 0.1);
+      const value = clampFontScale(songScale + dir * 0.1);
       setFontScale(value);
       showZoom(textLabel(value), 1200);
     }
@@ -808,6 +812,10 @@ export function App() {
   useEffect(() => setStageControls(false), [page, current]);
 
   const isPdf = currentEntry?.kind === 'pdf';
+  /** Clé du zoom propre au morceau : chemin dans la bibliothèque, ou échantillon. */
+  const zoomKey = current?.kind === 'library' ? current.path : current ? `${current.kind}:${current.path}` : '';
+  const songScale = device.songZoom[zoomKey] ?? device.fontScale;
+  const songDevice = useMemo(() => ({ ...device, fontScale: songScale }), [device, songScale]);
   /** Zoom en mode scène : taille du texte d'un morceau ChordPro, recadrage d'un PDF. */
   const canZoom = stage && current?.kind !== 'note';
   const scalerStyle = { transform: `scale(${scale})`, '--hair': `${Math.max(1, 1 / scale)}px` } as React.CSSProperties;
@@ -1057,7 +1065,7 @@ export function App() {
                   <SongPages
                     song={renderSong}
                     settings={effectiveSettings}
-                    device={device}
+                    device={songDevice}
                     page={page}
                     onPageCount={onPageCount}
                     columns={renderSong.meta.columns === 1 || renderSong.meta.columns === 2 ? renderSong.meta.columns : undefined}
@@ -1085,7 +1093,7 @@ export function App() {
                   ? null
                   : isPdf
                     ? { label: pdfLabel(pageCrop), onStep: zoomStep }
-                    : { label: textLabel(device.fontScale), onStep: zoomStep, onReset: () => setFontScale(1) }
+                    : { label: textLabel(songScale), onStep: zoomStep, onReset: () => setFontScale(1) }
               }
               onTranspose={(d) => setExtraTranspose((t) => (d === 'reset' ? 0 : t + d))}
               onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
