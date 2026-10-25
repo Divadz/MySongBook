@@ -4,6 +4,13 @@
  * Un tap hors du panneau le referme.
  */
 import type { Setlist } from '../core/setlist';
+import type { InkTool } from '../core/ink';
+
+const TOOLS: { id: InkTool | 'eraser'; label: string }[] = [
+  { id: 'pen', label: 'Stylo' },
+  { id: 'highlighter', label: 'Surligneur' },
+  { id: 'eraser', label: 'Gomme' },
+];
 
 interface Props {
   title: string;
@@ -22,6 +29,18 @@ interface Props {
   onClose: () => void;
   /** Absent sur la tablette, toujours en mode scène. */
   onExit?: () => void;
+  /** Outils du stylet, pour un morceau de la bibliothèque. */
+  ink?: {
+    tool: InkTool | 'eraser';
+    onTool: (t: InkTool | 'eraser') => void;
+    onUndo: () => void;
+    onClear: () => void;
+    canUndo: boolean;
+    /** Nombre de traits concernés par « Tout effacer ». */
+    count: number;
+    /** PDF : « Tout effacer » ne touche que la page affichée. */
+    pageOnly: boolean;
+  };
 }
 
 export function StageControls(p: Props) {
@@ -70,6 +89,23 @@ export function StageControls(p: Props) {
             )}
             <button className="stage-button" onClick={() => p.zoom?.onStep(1)} aria-label="Zoomer">
               +
+            </button>
+          </div>
+        )}
+
+        {p.ink && (
+          <div className="stage-row wrap">
+            <span className="stage-label">Stylet</span>
+            {TOOLS.map((t) => (
+              <button key={t.id} className={p.ink?.tool === t.id ? 'stage-button primary' : 'stage-button'} onClick={() => p.ink?.onTool(t.id)}>
+                {t.label}
+              </button>
+            ))}
+            <button className="stage-button" onClick={p.ink.onUndo} disabled={!p.ink.canUndo}>
+              Annuler
+            </button>
+            <button className="stage-button" onClick={p.ink.onClear} disabled={p.ink.count === 0}>
+              {p.ink.pageOnly ? 'Effacer la page' : 'Tout effacer'}
             </button>
           </div>
         )}

@@ -16,10 +16,11 @@ export interface ChordLyric {
   lyrics: string;
 }
 
+/** source : numéro de ligne (1 = première) dans le fichier .cho, pour y rattacher les annotations. */
 export type SongLine =
-  | { kind: 'pairs'; items: ChordLyric[]; chordsOnly: boolean }
-  | { kind: 'literal'; text: string }
-  | { kind: 'comment'; text: string; style: CommentStyle };
+  | { kind: 'pairs'; items: ChordLyric[]; chordsOnly: boolean; source?: number }
+  | { kind: 'literal'; text: string; source?: number }
+  | { kind: 'comment'; text: string; style: CommentStyle; source?: number };
 
 export type CommentStyle = 'plain' | 'italic' | 'box' | 'highlight';
 
@@ -28,10 +29,13 @@ export interface SectionBlock {
   type: string;
   label?: string;
   lines: SongLine[];
+  /** Ligne du début de section dans le fichier (libellé). */
+  source?: number;
 }
 
 export interface AbcBlock {
   kind: 'abc';
+  source?: number;
   label?: string;
   abc: string;
   /** Facteur de taille propre au bloc ({start_of_abc scale=80%}). */
@@ -42,6 +46,7 @@ export interface AbcBlock {
 
 export interface ImageBlock {
   kind: 'image';
+  source?: number;
   src: string;
   /** Largeur CSS (« 70% », « 60mm »…), facultative. */
   width?: string;
@@ -49,6 +54,7 @@ export interface ImageBlock {
 
 export interface CommentBlock {
   kind: 'comment';
+  source?: number;
   text: string;
   style: CommentStyle;
 }
@@ -136,7 +142,8 @@ function parseScale(v: string | undefined): number | undefined {
 export function extractTranspose(source: string): { source: string; transpose: number } {
   const m = TRANSPOSE_RE.exec(source);
   if (!m) return { source, transpose: 0 };
-  return { source: source.replace(TRANSPOSE_RE, ''), transpose: parseInt(m[1], 10) };
+  // La ligne est vidée, pas supprimée : les numéros de ligne (annotations) restent ceux du fichier.
+  return { source: source.replace(TRANSPOSE_RE, (all) => (all.endsWith('\n') ? '\n' : '')), transpose: parseInt(m[1], 10) };
 }
 
 /** Réécrit la directive {transpose:} dans le texte (ajoutée après les métadonnées de tête si absente). */
@@ -286,6 +293,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
 
   for (const line of song.lines) {
     const items = line.items;
+    const source = (line.lineNumber ?? -1) + 1 || undefined;
 
     // Bloc abc en cours : tout est du texte brut jusqu'à end_of_abc.
     if (abc) {
@@ -312,9 +320,9 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
         const attrs = sectionAttrs[sectionIndex++] ?? {};
         const label = structural.value?.trim() || attrs.label?.trim() || undefined;
         if (type === 'abc') {
-          abc = { kind: 'abc', label, abc: '', scale: parseScale(attrs.scale), width: attrs.width?.trim() || undefined };
+          abc = { kind: 'abc', source, label, abc: '', scale: parseScale(attrs.scale), width: attrs.width?.trim() || undefined };
         } else {
-          section = { kind: 'section', type, label, lines: [] };
+          section = { kind: 'section', type, label, lines: [], source };
         }
       } else if (name.startsWith('end_of_')) {
         closeSection();
@@ -328,7 +336,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
       const value = tag.value ?? '';
       if (name === 'image') {
         closeSection();
-        blocks.push(parseImage(value));
+        blocks.push({ ...parseImage(value), source });
         handled = true;
       } else if (name === 'new_page' || name === 'column_break') {
         closeSection();
@@ -341,8 +349,8 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
         handled = true;
       } else if (name in COMMENT_STYLES) {
         const style = COMMENT_STYLES[name];
-        if (section) section.lines.push({ kind: 'comment', text: value, style });
-        else blocks.push({ kind: 'comment', text: value, style });
+        if (section) section.lines.push({ kind: 'comment', text: value, style, source });
+        else blocks.push({ kind: 'comment', text: value, style, source });
         handled = true;
       } else if (name === 'textsize' || name === 'columns' || name === 'meta' || name.startsWith('x_')) {
         handled = true; // lues ailleurs ou ignorées
@@ -358,14 +366,14 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
       const sec = ensureSection();
       let text = literals.map((l) => l.string).join('');
       if (sec.type === 'grid' && totalTranspose !== 0) text = mapGridChords(text, (c) => transposeChordText(c, totalTranspose, spelling));
-      sec.lines.push({ kind: 'literal', text });
+      sec.lines.push({ kind: 'literal', text, source });
     } else if (pairs.length > 0) {
       const clean = pairs
         .map((p) => ({ chords: p.chords.trim() || (p.annotation ?? '').trim(), lyrics: (p.lyrics ?? '').replace(/\\\[/g, '[') }))
         .filter((p) => p.chords !== '' || p.lyrics !== '');
       if (clean.length === 0) continue;
       const chordsOnly = clean.every((p) => p.lyrics.trim() === '');
-      ensureSection().lines.push({ kind: 'pairs', items: clean, chordsOnly });
+      ensureSection().lines.push({ kind: 'pairs', items: clean, chordsOnly, source });
     } else if (comments.length > 0) {
       // Commentaires « # » du fichier : ignorés à l'affichage.
       continue;

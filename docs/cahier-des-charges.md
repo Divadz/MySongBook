@@ -169,6 +169,8 @@ Autres/Hallelujah.cho
 - `anchor.line` : numéro de ligne du fichier `.cho` sur laquelle le trait commence ; les coordonnées sont en millimètres relatives au coin supérieur gauche de cette ligne rendue.
 - Si la ligne n'existe plus (morceau réécrit), les traits orphelins sont affichés en fin de page et signalés, pour être effacés ou conservés.
 - Outils : stylo, surligneur (gris), gomme par trait, annuler, tout effacer.
+- PDF : `anchor.page` (1 = première page) ; points en fractions de la page entière (0 à 1), indépendants du recadrage ; épaisseur en fraction de la largeur de page. Fichier `Titre.pdf.ink.json`.
+- Ligne répétée par `{chorus}` : les traits ne s'affichent qu'à la première occurrence de la ligne.
 
 # Exigences fonctionnelles
 
@@ -201,7 +203,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | LEC-08 | P2 | Taille de police ajustable pour le morceau courant, mémorisée dans le fichier par `{textsize:}` ; facteur d'échelle global par appareil dans les réglages. Facteur par appareil fait le 2026-10-25 : pincement à deux doigts en mode scène (Ctrl + molette sur PC) et boutons − / + dans les commandes, de 50 à 300 %, enregistré par morceau et par appareil dans `.mysongbook/device-<modèle>.json` (`songZoom`, par chemin du morceau ; `fontScale` pour les morceaux sans zoom propre). Sur un PDF, le pincement recadre autour des doigts (et suit leur déplacement), enregistré dans le `.pdf.json` : cadre de la page si elle en a un, sinon cadre commun |
 | LEC-09 | P2 | Mode paroles seules (accords masqués) |
 | LEC-10 | P2 | Lecture d’un PDF : pages, zoom, recadrage mémorisé, rotation. Fait le 2026-10-22 : pages, recadrage manuel ou automatique enregistré dans le `.pdf.json`, commun à toutes les pages ou propre à une page ; rotation à faire |
-| LEC-11 | P2 | Annotations au stylet : dessiner, surligner, gommer, annuler, tout effacer ; enregistrement automatique |
+| LEC-11 | P2 | Annotations au stylet : dessiner, surligner, gommer, annuler, tout effacer ; enregistrement automatique. Fait le 2026-10-25 : le stylet dessine (le doigt tourne les pages), outil choisi dans les commandes de scène (Stylo, Surligneur, Gomme ; bouton gomme du stylet reconnu), Annuler, Tout effacer (PDF : la page) ; fichier `.ink.json` écrit 0,8 s après le dernier trait, supprimé s'il n'y a plus de trait ; sur PC, affichage et gomme à la souris |
 | LEC-12 | P2 | Barre d'information discrète : titre, tonalité, heure, position dans le set |
 | LEC-13 | P3 | Pédale Bluetooth (touches clavier) : page suivante / précédente, morceau suivant / précédent ; configuration par capture de touche |
 | LEC-14 | P3 | Défilement automatique optionnel avec durée par morceau |

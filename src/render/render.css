@@ -329,3 +329,32 @@
   padding-left: 0.6em;
   white-space: nowrap;
 }
+
+/* --- Annotations au stylet ------------------------------------------------ */
+.unit {
+  position: relative;
+}
+svg.ink {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+svg.ink path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+svg.ink .ink-pen {
+  stroke: #000;
+}
+svg.ink .ink-highlighter {
+  stroke: rgba(0, 0, 0, 0.22);
+  mix-blend-mode: multiply;
+}
+svg.ink .ink-hit {
+  stroke: transparent;
+}

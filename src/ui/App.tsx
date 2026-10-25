@@ -45,6 +45,18 @@ import { SongPages } from '../render/SongPages';
 import { CheatSheet } from './CheatSheet';
 import { StageControls } from './StageControls';
 import { onStageKey, setStageActive } from '../core/stage';
+import {
+  EMPTY_INK,
+  INK_WIDTH,
+  inkPath,
+  newStrokeId,
+  parseInk,
+  serializeInk,
+  simplify,
+  strokePath,
+  type InkDoc,
+  type InkTool,
+} from '../core/ink';
 import { clampFontScale, deviceName, loadDeviceSettings, loadLocalDeviceSettings, saveDeviceSettings } from '../core/deviceSettings';
 import type { DirectiveHelp } from './directives';
 import './app.css';
@@ -182,6 +194,16 @@ export function App() {
       /* réglages illisibles : on garde ceux en cours */
     }
     if (current?.kind !== 'library') return;
+    // Annotations modifiées sur un autre appareil (sauf enregistrement en attente ici).
+    if (inkSaveTimer.current === undefined) {
+      const inkFile = inkPath(current.path);
+      const text = (await library.exists(inkFile)) ? await library.readText(inkFile).catch(() => '') : '';
+      const fresh = parseInk(text);
+      if (serializeInk(fresh) !== serializeInk(inkRef.current)) {
+        inkUndo.current = [];
+        setInk(fresh);
+      }
+    }
     if (/\.pdf$/i.test(current.path)) {
       const metaPath = pdfMetaPath(current.path);
       const text = (await library.exists(metaPath)) ? await library.readText(metaPath).catch(() => '') : '';
@@ -690,6 +712,95 @@ export function App() {
     else if (stage) setStageControls((c) => !c);
   };
 
+  // --- Annotations : état et enregistrement --------------------------------------
+  const [ink, setInk] = useState<InkDoc>(EMPTY_INK);
+  const inkRef = useRef(ink);
+  inkRef.current = ink;
+  const inkUndo = useRef<InkDoc[]>([]);
+  const inkFile = useRef<string | null>(null);
+  const inkSaveTimer = useRef<number>();
+  const [inkTool, setInkToolState] = useState<InkTool | 'eraser'>(() => {
+    try {
+      const t = localStorage.getItem('mysongbook.inkTool');
+      return t === 'highlighter' || t === 'eraser' ? t : 'pen';
+    } catch {
+      return 'pen';
+    }
+  });
+  const setInkTool = (t: InkTool | 'eraser') => {
+    setInkToolState(t);
+    try {
+      localStorage.setItem('mysongbook.inkTool', t);
+    } catch {
+      /* préférence facultative */
+    }
+  };
+  const inkGesture = useRef<{
+    pointer: number;
+    eraser: boolean;
+    tool: InkTool;
+    livePx: number;
+    points: [number, number][];
+    erased: boolean;
+  } | null>(null);
+  const [liveInk, setLiveInk] = useState<{ d: string; width: number; tool: InkTool } | null>(null);
+
+  // Annotations du morceau ouvert, dans le fichier voisin (.ink.json).
+  useEffect(() => {
+    inkUndo.current = [];
+    inkFile.current = null;
+    setInk(EMPTY_INK);
+    if (!library || current?.kind !== 'library') return;
+    const path = inkPath(current.path);
+    inkFile.current = path;
+    let alive = true;
+    library
+      .exists(path)
+      .then((exists) => (exists ? library.readText(path) : ''))
+      .then((text) => alive && setInk(parseInk(text)))
+      .catch(() => alive && flash('Annotations illisibles.'));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, library]);
+
+  /** Enregistrement différé ; un morceau sans trait n'a plus de fichier d'annotations. */
+  const scheduleInkSave = (doc: InkDoc) => {
+    const lib = library;
+    const path = inkFile.current;
+    if (!lib || !path) return;
+    window.clearTimeout(inkSaveTimer.current);
+    inkSaveTimer.current = window.setTimeout(async () => {
+      inkSaveTimer.current = undefined;
+      const text = serializeInk(doc);
+      try {
+        if (text) await lib.writeText(path, text);
+        else if (await lib.exists(path)) await lib.remove(path);
+      } catch {
+        flash('Annotations non enregistrées.');
+      }
+    }, 800);
+  };
+  const changeInk = (next: InkDoc) => {
+    inkUndo.current = [...inkUndo.current.slice(-49), inkRef.current];
+    inkRef.current = next;
+    setInk(next);
+    scheduleInkSave(next);
+  };
+  const undoInk = () => {
+    const prev = inkUndo.current.pop();
+    if (!prev) return;
+    inkRef.current = prev;
+    setInk(prev);
+    scheduleInkSave(prev);
+  };
+  /** PDF : la page affichée seulement ; morceau ChordPro : tout le morceau. */
+  const clearInk = () => {
+    const keep = isPdf ? ink.strokes.filter((s) => s.anchor.page !== page + 1) : [];
+    if (keep.length !== ink.strokes.length) changeInk({ strokes: keep });
+  };
+
   // --- Mode scène -------------------------------------------------------------
   const stageRef = useRef(stage);
   stageRef.current = stage;
@@ -796,7 +907,102 @@ export function App() {
     const [a, b] = [...pinch.current.points.values()];
     return { distance: Math.hypot(a.x - b.x, a.y - b.y), center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
   };
+  // --- Annotations au stylet ---------------------------------------------------
+  // Le stylet dessine, le doigt tourne les pages. Sur PC, la souris peut gommer
+  // quand la gomme est choisie dans les commandes de scène.
+  const onInkDown = (e: React.PointerEvent): boolean => {
+    if (!stage || !library || current?.kind !== 'library' || cropping) return false;
+    const eraser = inkTool === 'eraser' || (e.buttons & 32) !== 0;
+    if (e.pointerType !== 'pen' && !(e.pointerType === 'mouse' && inkTool === 'eraser' && e.button === 0)) return false;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pinch.current.quietUntil = Date.now() + 600;
+    const tool: InkTool = inkTool === 'highlighter' ? 'highlighter' : 'pen';
+    // Épaisseur à l'écran pendant le tracé.
+    const frame = isPdf ? pdfFrame() : null;
+    const livePx = frame
+      ? (INK_WIDTH.pdf[tool] / pageCrop.width) * frame.width
+      : INK_WIDTH.chordpro[tool] * scale * MM_TO_PX * songScale;
+    inkGesture.current = { pointer: e.pointerId, eraser, tool, livePx, points: [[e.clientX, e.clientY]], erased: false };
+    if (eraser) eraseAt(e.clientX, e.clientY);
+    else setLiveInk({ d: strokePath([[e.clientX, e.clientY]]), width: livePx, tool });
+    return true;
+  };
+  const onInkMove = (e: React.PointerEvent): boolean => {
+    const g = inkGesture.current;
+    if (!g || g.pointer !== e.pointerId) return false;
+    const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
+    for (const ev of events.length ? events : [e.nativeEvent]) {
+      if (g.eraser) eraseAt(ev.clientX, ev.clientY);
+      else g.points.push([ev.clientX, ev.clientY]);
+    }
+    if (!g.eraser) setLiveInk({ d: strokePath(g.points), width: g.livePx, tool: g.tool });
+    return true;
+  };
+  const onInkUp = (e: React.PointerEvent): boolean => {
+    const g = inkGesture.current;
+    if (!g || g.pointer !== e.pointerId) return false;
+    inkGesture.current = null;
+    pinch.current.quietUntil = Date.now() + 400;
+    setLiveInk(null);
+    if (g.eraser) {
+      if (g.erased) scheduleInkSave(inkRef.current);
+      return true;
+    }
+    const stroke = anchorStroke(g.points, g.tool);
+    if (stroke) changeInk({ strokes: [...inkRef.current.strokes, stroke] });
+    return true;
+  };
+
+  /** Points écran → trait rattaché : à une ligne de la partition, ou à la page du PDF. */
+  const anchorStroke = (pts: [number, number][], tool: InkTool) => {
+    if (isPdf) {
+      const f = pdfFrame();
+      if (!f) return null;
+      const c = pageCrop;
+      const points = pts.map(([x, y]): [number, number] => [c.left + ((x - f.left) / f.width) * c.width, c.top + ((y - f.top) / f.height) * c.height]);
+      return { id: newStrokeId(), anchor: { page: page + 1 }, points: simplify(points, 0.0008), width: INK_WIDTH.pdf[tool], tool };
+    }
+    // Ligne sous le début du trait, sinon la plus proche verticalement.
+    const units = Array.from(viewportRef.current?.querySelectorAll<HTMLElement>('.page .unit[data-source]') ?? []);
+    if (units.length === 0) return null;
+    const [x0, y0] = pts[0];
+    let target = (document.elementFromPoint(x0, y0) as HTMLElement | null)?.closest<HTMLElement>('.page .unit[data-source]') ?? null;
+    if (!target) {
+      const dist = (el: HTMLElement) => {
+        const r = el.getBoundingClientRect();
+        return Math.abs(y0 - Math.min(Math.max(y0, r.top), r.bottom)) + Math.abs(x0 - Math.min(Math.max(x0, r.left), r.right)) / 4;
+      };
+      target = units.reduce((best, el) => (dist(el) < dist(best) ? el : best));
+    }
+    const r = target.getBoundingClientRect();
+    const k = scale * MM_TO_PX * songScale; // pixels écran par millimètre à 100 %
+    const points = pts.map(([x, y]): [number, number] => [(x - r.left) / k, (y - r.top) / k]);
+    return { id: newStrokeId(), anchor: { line: Number(target.dataset.source) }, points: simplify(points, 0.3), width: INK_WIDTH.chordpro[tool], tool };
+  };
+
+  /** Gomme : retire les traits sous le point (tracés invisibles « ink-hit », plus larges). */
+  const eraseAt = (x: number, y: number) => {
+    const hits = new Set<string>();
+    viewportRef.current?.querySelectorAll<SVGPathElement>('.ink-hit').forEach((el) => {
+      const ctm = el.getScreenCTM();
+      if (!ctm) return;
+      const pt = new DOMPoint(x, y).matrixTransform(ctm.inverse());
+      if (el.isPointInStroke(pt) && el.dataset.inkId) hits.add(el.dataset.inkId);
+    });
+    if (hits.size === 0) return;
+    const g = inkGesture.current;
+    if (g && !g.erased) {
+      g.erased = true;
+      inkUndo.current = [...inkUndo.current.slice(-49), inkRef.current];
+    }
+    const next = { strokes: inkRef.current.strokes.filter((s) => !hits.has(s.id)) };
+    inkRef.current = next;
+    setInk(next);
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
+    if (onInkDown(e)) return;
     if (!canZoom || e.pointerType !== 'touch') return;
     const p = pinch.current;
     p.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -818,6 +1024,7 @@ export function App() {
     }
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    if (onInkMove(e)) return;
     const p = pinch.current;
     if (!p.points.has(e.pointerId)) return;
     p.points.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -836,6 +1043,7 @@ export function App() {
     }
   };
   const onPointerUp = (e: React.PointerEvent) => {
+    if (onInkUp(e)) return;
     const p = pinch.current;
     if (!p.points.delete(e.pointerId)) return;
     if (p.start <= 0) return;
@@ -1136,6 +1344,7 @@ export function App() {
                     onPageCount={onPageCount}
                     cropping={cropping}
                     onCropDone={finishCrop}
+                    ink={ink.strokes.filter((s) => s.anchor.page === page + 1)}
                   />
                 </div>
               )
@@ -1149,6 +1358,7 @@ export function App() {
                     page={page}
                     onPageCount={onPageCount}
                     columns={renderSong.meta.columns === 1 || renderSong.meta.columns === 2 ? renderSong.meta.columns : undefined}
+                    ink={ink.strokes}
                   />
                 </div>
               )
@@ -1179,7 +1389,25 @@ export function App() {
               onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
               onClose={() => setStageControls(false)}
               onExit={isNative ? undefined : leaveStage}
+              ink={
+                library && current?.kind === 'library'
+                  ? {
+                      tool: inkTool,
+                      onTool: setInkTool,
+                      onUndo: undoInk,
+                      onClear: clearInk,
+                      canUndo: inkUndo.current.length > 0,
+                      count: isPdf ? ink.strokes.filter((s) => s.anchor.page === page + 1).length : ink.strokes.length,
+                      pageOnly: isPdf,
+                    }
+                  : undefined
+              }
             />
+          )}
+          {liveInk && (
+            <svg className="ink-live" aria-hidden>
+              <path className={`ink-${liveInk.tool}`} d={liveInk.d} strokeWidth={liveInk.width} />
+            </svg>
           )}
         </div>
       </main>

@@ -4,6 +4,8 @@ import type { DeviceSettings, RenderSettings } from '../core/settings';
 import { showSectionLabel } from '../core/settings';
 import { buildUnits, paginate, type Layout, type Unit } from './units';
 import { UnitView } from './UnitView';
+import { InkStrokes } from './InkStrokes';
+import type { Stroke } from '../core/ink';
 import './render.css';
 
 const MM_TO_PX = 96 / 25.4;
@@ -17,6 +19,8 @@ interface Props {
   onPageCount: (n: number) => void;
   /** Nombre de colonnes imposé par le fichier ({columns:}) ; sinon choix automatique. */
   columns?: 1 | 2;
+  /** Annotations au stylet, rattachées aux lignes du fichier. */
+  ink?: Stroke[];
 }
 
 /**
@@ -62,7 +66,7 @@ function lineExtent(unit: HTMLElement | undefined, within?: string): number {
 /** Tablatures et grilles ne passent pas à la ligne : elles doivent tenir dans la colonne. */
 const RIGID = '.u-literal, .grid-row';
 
-export function SongPages({ song, settings, device, page, onPageCount, columns: forced }: Props) {
+export function SongPages({ song, settings, device, page, onPageCount, columns: forced, ink = [] }: Props) {
   const innerW = device.pageWidth - 2 * device.margin;
   const innerH = device.pageHeight - 2 * device.margin;
   const widthFor = (n: number) => (innerW - settings.columnGap * (n - 1)) / n;
@@ -116,6 +120,28 @@ export function SongPages({ song, settings, device, page, onPageCount, columns: 
 
   const current = layout[Math.min(page, Math.max(0, layout.length - 1))] ?? [];
 
+  // Traits par ligne du fichier ; ceux dont la ligne n'existe plus (morceau réécrit)
+  // vont sur la dernière unité, pour rester visibles et pouvoir être effacés.
+  const inkByLine = useMemo(() => {
+    const lines = new Set(units.map((u) => u.source).filter((n): n is number => n !== undefined));
+    const lastLine = units.reduce((m, u) => (u.source !== undefined ? u.source : m), 0);
+    const map = new Map<number, Stroke[]>();
+    for (const s of ink) {
+      const line = s.anchor.line !== undefined && lines.has(s.anchor.line) ? s.anchor.line : lastLine;
+      map.set(line, [...(map.get(line) ?? []), s]);
+    }
+    return map;
+  }, [ink, units]);
+  const mmToPx = device.fontScale * MM_TO_PX;
+  const inkMap = (p: [number, number]): [number, number] => [p[0] * mmToPx, p[1] * mmToPx];
+  const inkWidth = (s: Stroke) => s.width * mmToPx;
+  // Une ligne répétée ({chorus}) ne porte ses traits qu'une fois : à sa première occurrence.
+  const firstUnit = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const u of units) if (u.source !== undefined && !m.has(u.source)) m.set(u.source, u.id);
+    return m;
+  }, [units]);
+
   return (
     <>
       {[1, 2].map((n) => (
@@ -141,9 +167,11 @@ export function SongPages({ song, settings, device, page, onPageCount, columns: 
             {col.map((i) => {
               const u: Unit | undefined = units[i];
               if (!u) return null; // mise en page d'un morceau précédent, en attente de re-mesure
+              const strokes = u.source !== undefined && firstUnit.get(u.source) === u.id ? inkByLine.get(u.source) : undefined;
               return (
-                <div key={u.id} className="unit">
+                <div key={u.id} className="unit" data-source={u.source}>
                   <UnitView unit={u} {...common} columnWidthMm={columnWidthMm} />
+                  {strokes && <InkStrokes strokes={strokes} map={inkMap} width={inkWidth} />}
                 </div>
               );
             })}

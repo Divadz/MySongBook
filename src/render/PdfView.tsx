@@ -3,6 +3,8 @@ import * as pdfjs from 'pdfjs-dist';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { LibraryFS } from '../core/library';
+import { InkStrokes } from './InkStrokes';
+import type { Stroke } from '../core/ink';
 import type { DeviceSettings } from '../core/settings';
 import { FULL_PAGE, normalizeCrop, type Crop } from '../core/pdfMeta';
 import './render.css';
@@ -28,6 +30,8 @@ interface Props {
   cropping: boolean;
   /** Fin du recadrage : nouveau cadre et sa portée, ou null pour annuler. */
   onCropDone: (crop: Crop | null, scope: CropScope) => void;
+  /** Annotations de la page affichée (points en fractions de la page entière). */
+  ink?: Stroke[];
 }
 
 /** Rend une zone de page PDF dans un canevas hors écran (pas de page à moitié dessinée sur l'e-ink). */
@@ -75,7 +79,7 @@ async function autoCrop(doc: PDFDocumentProxy, pages: number[]): Promise<Crop> {
 
 type Drag = { mode: 'move' | 'nw' | 'ne' | 'sw' | 'se'; x: number; y: number; start: Crop };
 
-export function PdfView({ library, path, crop, device, scale, page, onPageCount, cropping, onCropDone }: Props) {
+export function PdfView({ library, path, crop, device, scale, page, onPageCount, cropping, onCropDone, ink = [] }: Props) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -208,6 +212,14 @@ export function PdfView({ library, path, crop, device, scale, page, onPageCount,
         onPointerCancel={cropping ? endDrag : undefined}
       >
         <canvas ref={canvasRef} className="pdf-canvas" />
+        {size && !cropping && (
+          // Page entière → zone recadrée affichée, en pixels du cadre.
+          <InkStrokes
+            strokes={ink}
+            map={([x, y]) => [((x - shown.left) / shown.width) * size.w, ((y - shown.top) / shown.height) * size.h]}
+            width={(s) => (s.width / shown.width) * size.w}
+          />
+        )}
         {cropping && size && (
           <div
             className="crop-box"

@@ -5,7 +5,11 @@
 import type { Block, SongLine, SongMeta, CommentStyle } from '../core/song';
 import { parseGridLine } from '../core/grid';
 
-export type Unit =
+/**
+ * source : ligne du fichier .cho d'où vient l'unité (0 pour le titre), à
+ * laquelle les annotations au stylet sont rattachées.
+ */
+export type Unit = (
   | { id: string; kind: 'title'; meta: SongMeta }
   | { id: string; kind: 'header'; type: string; label: string }
   | {
@@ -21,7 +25,8 @@ export type Unit =
   | { id: string; kind: 'abc'; abc: string; label?: string; scale?: number; width?: string }
   | { id: string; kind: 'image'; src: string; width?: string }
   | { id: string; kind: 'comment'; text: string; style: CommentStyle }
-  | { id: string; kind: 'break'; which: 'new_page' | 'column_break' };
+  | { id: string; kind: 'break'; which: 'new_page' | 'column_break' }
+) & { source?: number };
 
 /** Colonnes d'une grille : marge gauche, cases, texte à droite (largeurs en caractères). */
 export interface GridLayout {
@@ -43,13 +48,13 @@ function gridLayout(lines: SongLine[]): GridLayout {
 }
 
 export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: string) => boolean): Unit[] {
-  const units: Unit[] = [{ id: 'title', kind: 'title', meta }];
+  const units: Unit[] = [{ id: 'title', kind: 'title', meta, source: 0 }];
   blocks.forEach((block, bi) => {
     const id = `b${bi}`;
     switch (block.kind) {
       case 'section': {
         const label = block.label ?? defaultLabel(block.type);
-        if (label && showLabels(block.type)) units.push({ id: `${id}h`, kind: 'header', type: block.type, label });
+        if (label && showLabels(block.type)) units.push({ id: `${id}h`, kind: 'header', type: block.type, label, source: block.source });
         const grid = block.type === 'grid' ? gridLayout(block.lines) : undefined;
         block.lines.forEach((line, li) => {
           units.push({
@@ -60,18 +65,19 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
             first: li === 0,
             last: li === block.lines.length - 1,
             grid,
+            source: line.source,
           });
         });
         break;
       }
       case 'abc':
-        units.push({ id, kind: 'abc', abc: block.abc, label: block.label, scale: block.scale, width: block.width });
+        units.push({ id, kind: 'abc', abc: block.abc, label: block.label, scale: block.scale, width: block.width, source: block.source });
         break;
       case 'image':
-        units.push({ id, kind: 'image', src: block.src, width: block.width });
+        units.push({ id, kind: 'image', src: block.src, width: block.width, source: block.source });
         break;
       case 'comment':
-        units.push({ id, kind: 'comment', text: block.text, style: block.style });
+        units.push({ id, kind: 'comment', text: block.text, style: block.style, source: block.source });
         break;
       case 'new_page':
       case 'column_break':
