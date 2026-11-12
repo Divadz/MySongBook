@@ -89,7 +89,7 @@ export const DIRECTIVE_GROUPS: DirectiveGroup[] = [
       },
       {
         syntax: '{chorus}',
-        description: 'Rappelle le dernier refrain en entier. Un libellé facultatif le remplace : {chorus: Refrain x2}.',
+        description: 'Rappel du refrain : affiche seulement le libellé « Refrain », ou celui donné : {chorus: Refrain x2}. Toujours visible, même si les libellés de section sont masqués.',
         snippet: '{chorus}§',
         ownLine: true,
       },

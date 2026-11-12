@@ -188,7 +188,12 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       return (
         <div
           className="u-header"
-          style={{ ...css(S.label, scale), marginLeft: `calc(${sec.indent * sec.size * scale}pt + ${S.label.indent}em)` }}
+          style={{
+            ...css(S.label, scale),
+            marginLeft: `calc(${sec.indent * sec.size * scale}pt + ${S.label.indent}em)`,
+            // Rappel de refrain : l'espace qui suit normalement une section.
+            paddingBottom: unit.ref ? `${sec.size * 0.6 * scale}pt` : undefined,
+          }}
         >
           {unit.label}
         </div>

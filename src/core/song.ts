@@ -65,7 +65,14 @@ export interface BreakBlock {
   kind: 'new_page' | 'column_break';
 }
 
-export type Block = SectionBlock | AbcBlock | ImageBlock | CommentBlock | BreakBlock;
+/** {chorus} : rappel du refrain, affiché par son seul libellé (« Refrain », « Refrain x2 »). */
+export interface ChorusRefBlock {
+  kind: 'chorusRef';
+  label: string;
+  source?: number;
+}
+
+export type Block = SectionBlock | AbcBlock | ImageBlock | CommentBlock | BreakBlock | ChorusRefBlock;
 
 export interface SongMeta {
   title: string;
@@ -279,14 +286,12 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
   const blocks: Block[] = [];
   let section: SectionBlock | null = null;
   let abc: AbcBlock | null = null;
-  const state: { lastChorus: SectionBlock | null } = { lastChorus: null };
 
   const closeSection = () => {
     // Lignes vides en fin de section : simple mise en forme du fichier.
     while (section && section.lines[section.lines.length - 1]?.kind === 'blank') section.lines.pop();
     if (section && section.lines.length > 0) {
       blocks.push(section);
-      if (section.type === 'chorus') state.lastChorus = section;
     }
     section = null;
   };
@@ -355,8 +360,7 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
         handled = true;
       } else if (name === 'chorus') {
         closeSection();
-        const lc = state.lastChorus;
-        if (lc) blocks.push({ ...lc, label: value.trim() || lc.label });
+        blocks.push({ kind: 'chorusRef', label: value.trim() || 'Refrain', source });
         handled = true;
       } else if (name in COMMENT_STYLES) {
         const style = COMMENT_STYLES[name];

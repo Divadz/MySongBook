@@ -11,7 +11,8 @@ import { parseGridLine } from '../core/grid';
  */
 export type Unit = (
   | { id: string; kind: 'title'; meta: SongMeta }
-  | { id: string; kind: 'header'; type: string; label: string }
+  /** ref : rappel d'un refrain ({chorus}), toujours affiché, suivi d'un espace de fin de section. */
+  | { id: string; kind: 'header'; type: string; label: string; ref?: boolean }
   | {
       id: string;
       kind: 'line';
@@ -70,6 +71,9 @@ export function buildUnits(meta: SongMeta, blocks: Block[], showLabels: (type: s
         });
         break;
       }
+      case 'chorusRef':
+        units.push({ id, kind: 'header', type: 'chorus', label: block.label, ref: true, source: block.source });
+        break;
       case 'abc':
         units.push({ id, kind: 'abc', abc: block.abc, label: block.label, scale: block.scale, width: block.width, source: block.source });
         break;
@@ -143,7 +147,7 @@ export function fillColumns(units: Unit[], heights: number[], columnHeight: numb
     }
     let h = heights[i] ?? 0;
     // Un en-tête ne reste jamais seul en bas de colonne.
-    if (unit.kind === 'header' && i + 1 < units.length) h += heights[i + 1] ?? 0;
+    if (unit.kind === 'header' && !unit.ref && i + 1 < units.length) h += heights[i + 1] ?? 0;
     if (used > 0 && used + h > columnHeight) flush();
     // Ligne blanche en haut de colonne : inutile, elle est sautée.
     if (col.length === 0 && unit.kind === 'line' && unit.line.kind === 'blank') continue;

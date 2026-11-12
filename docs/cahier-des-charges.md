@@ -170,7 +170,6 @@ Autres/Hallelujah.cho
 - Si la ligne n'existe plus (morceau réécrit), les traits orphelins sont affichés en fin de page et signalés, pour être effacés ou conservés.
 - Outils : stylo, surligneur (gris), gomme par trait, annuler, tout effacer.
 - PDF : `anchor.page` (1 = première page) ; points en fractions de la page entière (0 à 1), indépendants du recadrage ; épaisseur en fraction de la largeur de page. Fichier `Titre.pdf.ink.json`.
-- Ligne répétée par `{chorus}` : les traits ne s'affichent qu'à la première occurrence de la ligne.
 
 # Exigences fonctionnelles
 
@@ -214,7 +213,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
 | REN-01 | P1 | Accords au-dessus des paroles, alignés sur la syllabe ; accords seuls sur une ligne sans parole |
-| REN-02 | P1 | Sections : `verse`, `chorus`, `bridge`, `tab`, `grid`, sections nommées, `{c:}` comme titre de section ; `{chorus}` rappelle le dernier refrain |
+| REN-02 | P1 | Sections : `verse`, `chorus`, `bridge`, `tab`, `grid`, sections nommées, `{c:}` comme titre de section ; `{chorus}` rappelle le refrain par son seul libellé (« Refrain », ou le texte de la directive : `{chorus: Refrain x2}`), affiché même si les libellés de section sont masqués (décidé le 2026-11-12) |
 | REN-02b | P1 | Grilles dessinées en cases, une par mesure : une mesure à plusieurs accords est découpée en quatre triangles qui suivent les temps (gauche = 1er, haut = 2e, bas = 3e, droite = 4e) ; un accord tenu couvre plusieurs triangles et un trait ne sépare que deux accords différents (`C G7/B . Am` croix, `C . G7/B Am` diagonale et demi-diagonale, `C G7/B . .` triangle gauche seul, `C . . G7/B` triangle droit seul, `C . G .` diagonale, `C G C .` C à gauche, G en haut, C en bas à droite) ; un accord réécrit ouvre une nouvelle zone même s'il porte le même nom ; mesures à 2 ou 3 temps et accords « ~ » répartis de même ; `%` ; barres `||`, `|.`, `|:`, `:|` ; texte en marge avant la première barre et après la dernière. Fait le 2026-10-22 |
 | REN-03 | P1 | Métadonnées : `title`, `subtitle`, `artist`, `composer`, `lyricist`, `key`, `tempo`, `time`, `capo` (affiché seulement), `duration`, `copyright`, `tags` |
 | REN-04 | P1 | Transposition `{transpose:}` et `{key:}` ; choix de l'enharmonie selon la tonalité. Fait : bémols dans les tonalités à bémols (et leurs relatives), dièses ailleurs ; grilles transposées entre les barres seulement |
