@@ -165,6 +165,13 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
             <span className="ds-unit">%</span>
           </span>
         </label>
+        <label>
+          Lignes trop longues
+          <select value={settings.longLines} onChange={(e) => onChange({ ...settings, longLines: e.target.value === 'shrink' ? 'shrink' : 'wrap' })}>
+            <option value="wrap">Passer à la ligne</option>
+            <option value="shrink">Réduire la ligne (jusqu'à 75 %)</option>
+          </select>
+        </label>
         <label className="ds-inline">
           <input type="checkbox" checked={settings.showChords} onChange={(e) => onChange({ ...settings, showChords: e.target.checked })} />
           Afficher les accords
@@ -174,7 +181,7 @@ export function DisplaySettings({ settings, onChange, onClose }: Props) {
       <p className="ds-note">
         Le décalage est en em : 1 em vaut à peu près la largeur d'un caractère à la taille du bloc. Les libellés de
         section suivent le décalage de leur section, plus le leur. Un morceau peut imposer sa taille par la directive {'{textsize}'} (taille du couplet ; libellés, refrains, ponts,
-        grilles, tablatures, accords et notes gardent leur proportion) et son nombre de colonnes par {'{columns}'} ; sinon, le morceau passe en deux colonnes quand tout tient dans une demi-page sans retour à la ligne (en dézoomant, par exemple).
+        grilles, tablatures, accords et notes gardent leur proportion) et son nombre de colonnes par {'{columns}'} ; sinon, les colonnes sont automatiques : chacune prend la largeur de sa plus longue ligne et elles se placent côte à côte tant qu'elles tiennent dans la page (deux, trois ou plus en dézoomant) ; deux colonnes égales, où les lignes longues passent à la ligne (ou sont réduites selon le réglage « Lignes trop longues »), sont retenues si elles font moins de pages.
       </p>
 
       <button className="ds-reset" onClick={() => onChange(defaultRenderSettings)}>

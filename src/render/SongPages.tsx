@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { SongModel } from '../core/song';
 import type { DeviceSettings, RenderSettings } from '../core/settings';
 import { showSectionLabel } from '../core/settings';
-import { buildUnits, paginate, type Layout, type Unit } from './units';
+import { buildUnits, fillColumns, packColumns, type Layout, type Unit } from './units';
 import { UnitView } from './UnitView';
 import { InkStrokes } from './InkStrokes';
 import type { Stroke } from '../core/ink';
@@ -16,7 +16,8 @@ interface Props {
   device: DeviceSettings;
   /** Page affichée (index 0). */
   page: number;
-  onPageCount: (n: number) => void;
+  /** Nombre de pages, avec la taille du texte (fontScale) pour laquelle il a été mesuré. */
+  onPageCount: (n: number, fontScale?: number) => void;
   /** Nombre de colonnes imposé par le fichier ({columns:}) ; sinon choix automatique. */
   columns?: 1 | 2;
   /** Annotations au stylet, rattachées aux lignes du fichier. */
@@ -25,19 +26,33 @@ interface Props {
 
 /**
  * Rend un morceau en pages. Première passe : toutes les unités sont rendues
- * dans deux conteneurs cachés, à pleine largeur et à demi-largeur, pour être
- * mesurées ; deuxième passe : les unités sont réparties en pages et colonnes.
+ * dans un conteneur caché à pleine largeur pour être mesurées (hauteur et
+ * largeur de la plus longue ligne) ; deuxième passe : les unités sont
+ * réparties en colonnes, puis les colonnes en pages.
  *
- * Colonnes automatiques : deux colonnes quand la plus longue ligne ne dépasse
- * pas 75 % de la largeur utile de la page ; les lignes plus longues qu'une
- * demi-page passent alors à la ligne (accords et paroles ensemble) ; les
- * tablatures et grilles, qui ne peuvent pas passer à la ligne, doivent tenir
- * dans la demi-page. Réduire
- * le zoom fait donc passer à deux colonnes, et dézoomer davantage ne revient
- * jamais à une seule.
+ * Colonnes automatiques : chaque colonne est remplie jusqu'en bas de la page
+ * et prend la largeur de sa plus longue ligne (au moins un quart de la page) ;
+ * les colonnes se placent côte à côte tant qu'elles tiennent dans la largeur.
+ * Une page peut donc porter une, deux, trois colonnes ou plus, de largeurs
+ * différentes, selon le zoom et la longueur des lignes. Une ligne plus large
+ * que la page passe à la ligne (ou est réduite, selon le réglage).
+ *
+ * Quelques lignes longues élargiraient toute leur colonne : on essaie donc
+ * aussi deux colonnes égales, où ces lignes passent à la ligne (si la plus
+ * longue ne dépasse pas 75 % de la page et que tablatures et grilles tiennent
+ * dans la demi-page), et on garde la disposition qui fait le moins de pages
+ * (à égalité, celle à largeurs variables, sans coupure de ligne).
+ *
+ * {columns: N} dans le fichier impose N colonnes égales.
  */
-/** Deux colonnes si la plus longue ligne ne dépasse pas cette part de la largeur utile de la page. */
+/** Largeur minimale d'une colonne automatique, en part de la largeur utile. */
+const MIN_COLUMN = 0.25;
+/** Marge ajoutée à la largeur mesurée d'une colonne (arrondis de rendu), en mm. */
+const COLUMN_SLACK = 1;
+/** Deux colonnes égales possibles si la plus longue ligne ne dépasse pas cette part de la largeur utile. */
 const TWO_COLUMNS_MAX_LINE = 0.75;
+/** Tablatures et grilles ne passent pas à la ligne : elles doivent tenir dans la colonne. */
+const RIGID = '.u-literal, .grid-row';
 
 /**
  * Largeur occupée par la plus longue ligne d'une unité mesurée à pleine
@@ -49,8 +64,8 @@ function lineExtent(unit: HTMLElement | undefined, within?: string): number {
   if (!unit) return 0;
   const left = unit.getBoundingClientRect().left;
   let right = left;
-  const roots = within ? Array.from(unit.querySelectorAll<HTMLElement>(within)) : [unit];
   const range = document.createRange();
+  const roots = within ? Array.from(unit.querySelectorAll<HTMLElement>(within)) : [unit];
   for (const root of roots) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -62,9 +77,6 @@ function lineExtent(unit: HTMLElement | undefined, within?: string): number {
   }
   return right - left;
 }
-
-/** Tablatures et grilles ne passent pas à la ligne : elles doivent tenir dans la colonne. */
-const RIGID = '.u-literal, .grid-row';
 
 export function SongPages({ song, settings, device, page, onPageCount, columns: forced, ink = [] }: Props) {
   const innerW = device.pageWidth - 2 * device.margin;
@@ -79,29 +91,40 @@ export function SongPages({ song, settings, device, page, onPageCount, columns: 
   const fullRef = useRef<HTMLDivElement>(null);
   const halfRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<Layout>([]);
-  const [columns, setColumns] = useState<1 | 2>(1);
   const [tick, setTick] = useState(0);
 
   useLayoutEffect(() => {
     const full = fullRef.current;
-    const half = halfRef.current;
-    if (!full || !half) return;
-    const fullUnits = Array.from(full.children) as HTMLElement[];
-    const halfUnits = Array.from(half.children) as HTMLElement[];
-    const heights = (list: HTMLElement[]) => units.map((_, i) => list[i]?.offsetHeight ?? 0);
+    if (!full) return;
     const columnHeight = innerH * MM_TO_PX;
-    const longest = Math.max(0, ...units.map((_, i) => lineExtent(fullUnits[i])));
-    const rigid = Math.max(0, ...units.map((_, i) => lineExtent(fullUnits[i], RIGID)));
-    // Les mesures sont dans la page mise à l'échelle : on compare aux largeurs affichées.
-    const fullWidth = full.getBoundingClientRect().width;
-    const halfWidth = half.getBoundingClientRect().width;
-    const fits = fullWidth > 0 && longest <= TWO_COLUMNS_MAX_LINE * fullWidth && rigid <= halfWidth;
-    const n: 1 | 2 = forced ?? (fits ? 2 : 1);
-    const l = paginate(units, heights(n === 1 ? fullUnits : halfUnits), columnHeight, n);
-    setColumns(n);
+    let l: Layout;
+    if (forced) {
+      const list = Array.from((forced === 1 ? full : halfRef.current ?? full).children) as HTMLElement[];
+      const cols = fillColumns(units, units.map((_, i) => list[i]?.offsetHeight ?? 0), columnHeight);
+      l = packColumns(cols, () => widthFor(forced), innerW, settings.columnGap, forced);
+    } else {
+      const list = Array.from(full.children) as HTMLElement[];
+      // Les mesures sont dans la page mise à l'échelle : largeurs rapportées à celle du conteneur.
+      const fullPx = full.getBoundingClientRect().width;
+      const extent = units.map((_, i) => (fullPx > 0 ? (lineExtent(list[i]) / fullPx) * innerW : innerW));
+      const cols = fillColumns(units, units.map((_, i) => list[i]?.offsetHeight ?? 0), columnHeight);
+      const widthOf = (c: { units: number[] }) =>
+        Math.min(innerW, Math.max(MIN_COLUMN * innerW, ...c.units.map((i) => extent[i] + COLUMN_SLACK)));
+      l = packColumns(cols, widthOf, innerW, settings.columnGap);
+      // Variante : deux colonnes égales, les lignes longues passant à la ligne.
+      const half = halfRef.current;
+      const rigid = Math.max(0, ...units.map((_, i) => (lineExtent(list[i], RIGID) / fullPx) * innerW));
+      if (half && fullPx > 0 && Math.max(0, ...extent) <= TWO_COLUMNS_MAX_LINE * innerW && rigid <= widthFor(2)) {
+        const halfList = Array.from(half.children) as HTMLElement[];
+        const halfCols = fillColumns(units, units.map((_, i) => halfList[i]?.offsetHeight ?? 0), columnHeight);
+        const two = packColumns(halfCols, () => widthFor(2), innerW, settings.columnGap, 2);
+        if (two.length < l.length) l = two;
+      }
+    }
     setLayout(l);
-    onPageCount(l.length);
-  }, [units, settings, device, forced, innerH, tick, onPageCount]);
+    onPageCount(l.length, device.fontScale);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [units, settings, device, forced, innerH, innerW, tick, onPageCount]);
 
   const bump = () => setTick((t) => t + 1);
   useLayoutEffect(() => {
@@ -115,7 +138,6 @@ export function SongPages({ song, settings, device, page, onPageCount, columns: 
       document.fonts.removeEventListener('loadingdone', onDone);
     };
   }, []);
-  const columnWidthMm = widthFor(columns);
   const common = { settings, device, transpose: song.totalTranspose };
 
   const current = layout[Math.min(page, Math.max(0, layout.length - 1))] ?? [];
@@ -163,14 +185,14 @@ export function SongPages({ song, settings, device, page, onPageCount, columns: 
         }}
       >
         {current.map((col, ci) => (
-          <div key={ci} className="column" style={{ width: `${columnWidthMm}mm` }}>
-            {col.map((i) => {
+          <div key={ci} className="column" style={{ width: `${col.width}mm` }}>
+            {col.units.map((i) => {
               const u: Unit | undefined = units[i];
               if (!u) return null; // mise en page d'un morceau précédent, en attente de re-mesure
               const strokes = u.source !== undefined && firstUnit.get(u.source) === u.id ? inkByLine.get(u.source) : undefined;
               return (
                 <div key={u.id} className="unit" data-source={u.source}>
-                  <UnitView unit={u} {...common} columnWidthMm={columnWidthMm} />
+                  <UnitView unit={u} {...common} columnWidthMm={col.width} />
                   {strokes && <InkStrokes strokes={strokes} map={inkMap} width={inkWidth} />}
                 </div>
               );

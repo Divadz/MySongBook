@@ -98,6 +98,8 @@ export interface RenderSettings {
   showChords: boolean;
   /** Taille des portées ABC (1 = taille normale). */
   abcScale: number;
+  /** Ligne plus large que la colonne : passer à la ligne, ou d'abord réduire la police de cette ligne (jusqu'à 75 %). */
+  longLines: 'wrap' | 'shrink';
   /** Version du format : 3 = décalages en em. */
   version: number;
 }
@@ -107,9 +109,13 @@ export interface DeviceSettings {
   pageWidth: number;
   pageHeight: number;
   margin: number;
-  /** Facteur d'échelle des polices de l'appareil, pour les morceaux sans zoom propre. */
+  /** Facteur d'échelle des polices de l'appareil. */
   fontScale: number;
-  /** Zoom de chaque morceau sur cet appareil (pincement en mode scène), par chemin dans la bibliothèque. */
+  /**
+   * Zoom de chaque morceau sur cet appareil (pincement, boutons ou « Ajuster
+   * à la page » en mode scène), par chemin dans la bibliothèque : multiplicateur
+   * de fontScale (1,15 = 15 % plus grand que les autres morceaux).
+   */
   songZoom: Record<string, number>;
 }
 
@@ -151,6 +157,7 @@ export const defaultRenderSettings: RenderSettings = {
   columnGap: 8,
   showChords: true,
   abcScale: 1,
+  longLines: 'wrap',
   version: 3,
 };
 
@@ -235,6 +242,7 @@ export function mergeRenderSettings(saved: Partial<RenderSettings> | null | unde
     styles,
     metaFields: { ...d.metaFields, ...(saved.metaFields ?? {}) },
     sectionLabels: { ...d.sectionLabels, ...(saved.sectionLabels ?? {}) },
+    longLines: saved.longLines === 'shrink' ? 'shrink' : 'wrap',
   };
 }
 

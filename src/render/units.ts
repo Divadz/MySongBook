@@ -101,57 +101,83 @@ function defaultLabel(type: string): string {
   }
 }
 
-/** pages → colonnes → indices d'unités */
-export type Layout = number[][][];
+/** Une colonne d'une page : indices d'unités et largeur en mm. */
+export interface PageColumn {
+  units: number[];
+  width: number;
+}
+
+/** pages → colonnes */
+export type Layout = PageColumn[][];
+
+/** Colonne remplie en hauteur, avant d'être placée sur une page. */
+export interface FilledColumn {
+  units: number[];
+  /** Commence une nouvelle page ({new_page}). */
+  newPage: boolean;
+}
 
 /**
- * Répartition gloutonne : on remplit chaque colonne jusqu'à sa hauteur, un
- * en-tête de section reste avec la ligne qui le suit, les sauts explicites
- * sont respectés.
+ * Remplissage glouton en hauteur : on remplit chaque colonne jusqu'à sa
+ * hauteur, un en-tête de section reste avec la ligne qui le suit, les sauts
+ * explicites ({column_break}, {new_page}) sont respectés.
  */
-export function paginate(units: Unit[], heights: number[], columnHeight: number, columns: number): Layout {
-  const pages: Layout = [];
-  let page: number[][] = [];
+export function fillColumns(units: Unit[], heights: number[], columnHeight: number): FilledColumn[] {
+  const columns: FilledColumn[] = [];
   let col: number[] = [];
   let used = 0;
-
-  const flushCol = () => {
-    page.push(col);
+  let newPage = false;
+  const flush = () => {
+    if (col.length > 0) columns.push({ units: col, newPage });
+    else if (newPage) return; // saut de page en attente : il s'applique à la colonne suivante
     col = [];
     used = 0;
+    newPage = false;
   };
-  const flushPage = () => {
-    if (col.length > 0 || page.length === 0) flushCol();
-    while (page.length < columns) page.push([]);
-    pages.push(page);
-    page = [];
-  };
-  const nextColumn = () => {
-    flushCol();
-    if (page.length >= columns) {
-      pages.push(page);
-      page = [];
-    }
-  };
-
   for (let i = 0; i < units.length; i++) {
     const unit = units[i];
     if (unit.kind === 'break') {
-      if (unit.which === 'new_page') {
-        if (col.length > 0 || page.length > 0) flushPage();
-      } else if (col.length > 0) {
-        nextColumn();
-      }
+      flush();
+      if (unit.which === 'new_page' && columns.length > 0) newPage = true;
       continue;
     }
     let h = heights[i] ?? 0;
     // Un en-tête ne reste jamais seul en bas de colonne.
     if (unit.kind === 'header' && i + 1 < units.length) h += heights[i + 1] ?? 0;
-    if (used > 0 && used + h > columnHeight) nextColumn();
+    if (used > 0 && used + h > columnHeight) flush();
     col.push(i);
     used += heights[i] ?? 0;
   }
-  if (col.length > 0 || page.length > 0) flushPage();
-  if (pages.length === 0) pages.push(Array.from({ length: columns }, () => []));
+  flush();
+  return columns;
+}
+
+/**
+ * Placement des colonnes sur les pages, de gauche à droite : une colonne va
+ * sur la page en cours si elle tient dans la largeur restante (et si la page
+ * n'a pas déjà maxColumns colonnes), sinon elle ouvre une nouvelle page.
+ */
+export function packColumns(
+  columns: FilledColumn[],
+  widthOf: (c: FilledColumn) => number,
+  pageWidth: number,
+  gap: number,
+  maxColumns = Infinity,
+): Layout {
+  const pages: Layout = [];
+  let page: PageColumn[] = [];
+  let used = 0;
+  for (const c of columns) {
+    const width = widthOf(c);
+    if (page.length > 0 && (c.newPage || page.length >= maxColumns || used + gap + width > pageWidth + 0.01)) {
+      pages.push(page);
+      page = [];
+      used = 0;
+    }
+    used += (page.length > 0 ? gap : 0) + width;
+    page.push({ units: c.units, width });
+  }
+  if (page.length > 0) pages.push(page);
+  if (pages.length === 0) pages.push([{ units: [], width: pageWidth }]);
   return pages;
 }

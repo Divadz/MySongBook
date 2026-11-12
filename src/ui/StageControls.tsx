@@ -24,7 +24,8 @@ interface Props {
   keyName?: string;
   onTranspose: (delta: number | 'reset') => void;
   /** Zoom (taille du texte ou recadrage d'un PDF), ou null si sans objet (note). */
-  zoom: { label: string; onStep: (dir: 1 | -1) => void; onReset?: () => void } | null;
+  /** onReset absent : le morceau n'a pas de zoom propre. */
+  zoom: { label: string; onStep: (dir: 1 | -1) => void; onReset?: () => void; onFit?: () => void; fitLabel?: string } | null;
   onPlay: (index: number) => void;
   onClose: () => void;
   /** Absent sur la tablette, toujours en mode scène. */
@@ -77,19 +78,24 @@ export function StageControls(p: Props) {
         )}
 
         {p.zoom && (
-          <div className="stage-row">
+          <div className="stage-row wrap">
             <span className="stage-label">{p.zoom.label}</span>
             <button className="stage-button" onClick={() => p.zoom?.onStep(-1)} aria-label="Dézoomer">
               −
             </button>
             {p.zoom.onReset && (
-              <button className="stage-button" onClick={p.zoom.onReset} title="Revenir à 100 %">
-                100 %
+              <button className="stage-button" onClick={p.zoom.onReset} title="Revenir à la taille des autres morceaux">
+                Normal
               </button>
             )}
             <button className="stage-button" onClick={() => p.zoom?.onStep(1)} aria-label="Zoomer">
               +
             </button>
+            {p.zoom.onFit && (
+              <button className="stage-button" onClick={p.zoom.onFit} title="Plus grande taille qui tient sur une page">
+                {p.zoom.fitLabel ?? 'Ajuster à la page'}
+              </button>
+            )}
           </div>
         )}
 

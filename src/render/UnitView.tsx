@@ -111,6 +111,35 @@ function GridRowView({ row, layout, style }: { row: GridRow; layout: GridLayout;
   );
 }
 
+/** Réduction maximale d'une ligne trop longue (réglage « Lignes longues : réduire ») avant le retour à la ligne. */
+const LONG_LINE_MIN = 0.75;
+
+/**
+ * Ligne paroles et accords. Si elle dépasse la colonne et que le réglage le
+ * demande, elle est réduite (jusqu'à 75 %) pour tenir sur une ligne ; au-delà,
+ * elle passe à la ligne, déjà réduite. Le réglage est appliqué avant les
+ * mesures de mise en page (effet de mise en page du composant enfant).
+ */
+function FitLine({ shrink, className, style, children }: { shrink: boolean; className: string; style: React.CSSProperties; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.zoom = '';
+    if (!shrink) return;
+    el.style.flexWrap = 'nowrap';
+    const natural = el.scrollWidth;
+    const available = el.clientWidth;
+    el.style.flexWrap = '';
+    if (available > 0 && natural > available + 0.5) el.style.zoom = String(Math.max(LONG_LINE_MIN, available / natural));
+  });
+  return (
+    <div ref={ref} className={className} style={style}>
+      {children}
+    </div>
+  );
+}
+
 function metaLines(m: SongMeta, show: RenderSettings['metaFields']): string[] {
   const lines: string[] = [];
   if (show.subtitle && m.subtitle) lines.push(m.subtitle);
@@ -193,7 +222,11 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
       }
       if (!settings.showChords && line.chordsOnly) return <div style={{ height: 0 }} />;
       return (
-        <div className={`u-line ${line.chordsOnly ? 'chords-only' : ''}`} style={{ ...css(st, scale), ...spacing }}>
+        <FitLine
+          className={`u-line ${line.chordsOnly ? 'chords-only' : ''}`}
+          style={{ ...css(st, scale), ...spacing }}
+          shrink={settings.longLines === 'shrink'}
+        >
           {line.items.flatMap((it, i) => {
             // Un bloc par mot, l'accord avec le premier : en colonne étroite, la ligne
             // passe à la ligne entre deux mots, l'accord toujours au-dessus de sa syllabe.
@@ -228,7 +261,7 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
               );
             });
           })}
-        </div>
+        </FitLine>
       );
     }
     case 'abc':

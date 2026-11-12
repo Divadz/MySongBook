@@ -5,6 +5,7 @@ import {
   loadRenderSettings,
   mergeRenderSettings,
   saveRenderSettings,
+  type DeviceSettings,
   type RenderSettings,
 } from '../core/settings';
 import {
@@ -57,7 +58,18 @@ import {
   type InkDoc,
   type InkTool,
 } from '../core/ink';
-import { clampFontScale, deviceName, loadDeviceSettings, loadLocalDeviceSettings, saveDeviceSettings } from '../core/deviceSettings';
+import {
+  clampFontScale,
+  deviceName,
+  FONT_SCALE_MAX,
+  FONT_SCALE_MIN,
+  loadDeviceSettings,
+  loadLocalDeviceSettings,
+  relinkSongZoom,
+  saveDeviceSettings,
+  songFontScale,
+  zoomFactorFor,
+} from '../core/deviceSettings';
 import type { DirectiveHelp } from './directives';
 import './app.css';
 
@@ -67,6 +79,8 @@ interface SampleEntry {
 }
 
 const MM_TO_PX = 96 / 25.4;
+/** Taille maximale proposée par « Ajuster à la page ». */
+const FIT_MAX = 2;
 
 export function App() {
   // --- Bibliothèque ---------------------------------------------------------
@@ -112,6 +126,8 @@ export function App() {
   const [zoomBadge, setZoomBadge] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
+  /** Taille essayée par « Ajuster à la page » (non enregistrée). */
+  const [probeScale, setProbeScale] = useState<number | null>(null);
   const [scale, setScale] = useState(1);
   /** Métadonnées du PDF affiché (.pdf.json) et mode recadrage. */
   const [pdfMeta, setPdfMeta] = useState<PdfMeta>({});
@@ -696,7 +712,15 @@ export function App() {
     window.addEventListener('mouseup', up);
   };
 
-  const onPageCount = useCallback((n: number) => {
+  const onPageCount = useCallback((n: number, measuredScale?: number) => {
+    if (measuredScale !== undefined) {
+      lastMeasure.current = { n, scale: measuredScale };
+      const f = fit.current;
+      if (f && Math.abs(f.probe - measuredScale) < 1e-6) {
+        fitMeasuredRef.current(n);
+        return;
+      }
+    }
     setPageCount(n);
     setPage((p) => (wantLastPage.current ? Math.max(0, n - 1) : Math.min(p, Math.max(0, n - 1))));
   }, []);
@@ -854,13 +878,18 @@ export function App() {
   }, []);
   // --- Zoom du texte, propre à l'appareil (pincement en mode scène) -------------
   const saveDeviceTimer = useRef<number>();
-  /** Zoom du morceau courant sur cet appareil ; 100 % efface l'entrée. */
+  /**
+   * Taille du texte du morceau courant sur cet appareil, enregistrée comme
+   * multiplicateur de la taille de l'appareil ; revenir à celle-ci efface l'entrée.
+   */
   const setFontScale = (value: number) => {
-    const scale = clampFontScale(value);
+    const factor = zoomFactorFor(device, value);
     const songZoom = { ...device.songZoom };
-    if (scale === device.fontScale) delete songZoom[zoomKey];
-    else songZoom[zoomKey] = scale;
-    const next = { ...device, songZoom };
+    if (factor === null) delete songZoom[zoomKey];
+    else songZoom[zoomKey] = factor;
+    storeDevice({ ...device, songZoom });
+  };
+  const storeDevice = (next: DeviceSettings) => {
     setDevice(next);
     window.clearTimeout(saveDeviceTimer.current);
     saveDeviceTimer.current = window.setTimeout(async () => {
@@ -871,6 +900,13 @@ export function App() {
       }
     }, 800);
   };
+  // Morceau renommé ou déplacé hors de l'appli : son zoom suit le nouveau chemin.
+  useEffect(() => {
+    if (!library) return;
+    const relinked = relinkSongZoom(device.songZoom, entries);
+    if (relinked) storeDevice({ ...device, songZoom: relinked });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
   const badgeTimer = useRef<number>();
   const showZoom = (label: string | null, hideAfter?: number) => {
     setZoomBadge(label);
@@ -878,6 +914,57 @@ export function App() {
     if (hideAfter) badgeTimer.current = window.setTimeout(() => setZoomBadge(null), hideAfter);
   };
   const textLabel = (v: number) => `Texte ${Math.round(v * 100)} %`;
+
+  /**
+   * « Ajuster à la page » : plus grande taille de texte (au plus 200 %) pour
+   * que le morceau tienne sur une page, colonnes automatiques comprises ; sur
+   * le moins de pages possible si le morceau impose des sauts ({new_page}).
+   * La plus petite taille est mesurée d'abord (nombre de pages visé), puis
+   * recherche par dichotomie sur les crans de 5 % : chaque taille essayée est
+   * rendue et mesurée avant affichage, et la retenue est enregistrée comme un
+   * zoom ordinaire.
+   */
+  const fit = useRef<{ lo: number; hi: number; probe: number; target: number } | null>(null);
+  const lastMeasure = useRef<{ n: number; scale: number } | null>(null);
+  const fitValue = (k: number) => Math.round((FONT_SCALE_MIN + k * 0.05) * 100) / 100;
+  const fitNext = () => {
+    const f = fit.current;
+    if (!f) return;
+    if (f.hi - f.lo <= 1) {
+      fit.current = null;
+      const value = fitValue(f.lo);
+      setProbeScale(null);
+      setFontScale(value);
+      setPage(0);
+      showZoom(f.target > 1 ? `${textLabel(value)} (${f.target} pages imposées)` : textLabel(value), 1500);
+      return;
+    }
+    f.probe = fitValue(f.lo < 0 ? 0 : Math.floor((f.lo + f.hi) / 2));
+    const last = lastMeasure.current;
+    if (last && Math.abs(last.scale - f.probe) < 1e-6) fitMeasured(last.n);
+    else setProbeScale(f.probe);
+  };
+  const fitMeasured = (n: number) => {
+    const f = fit.current;
+    if (!f) return;
+    const k = Math.round((f.probe - FONT_SCALE_MIN) / 0.05);
+    if (f.lo < 0) f.target = Math.max(1, n);
+    if (n <= f.target) f.lo = k;
+    else f.hi = k;
+    fitNext();
+  };
+  const fitMeasuredRef = useRef(fitMeasured);
+  fitMeasuredRef.current = fitMeasured;
+  const fitToPage = () => {
+    if (isPdf) {
+      setPdfZoom(FULL_PAGE);
+      showZoom(pdfLabel(FULL_PAGE), 1200);
+      return;
+    }
+    const top = Math.round((Math.min(FIT_MAX, FONT_SCALE_MAX) - FONT_SCALE_MIN) / 0.05);
+    fit.current = { lo: -1, hi: top + 1, probe: NaN, target: 1 };
+    fitNext();
+  };
   const pdfLabel = (c: Crop) => `Zoom ${cropZoomPercent(c)} %`;
 
   /**
@@ -1087,7 +1174,8 @@ export function App() {
   const isPdf = currentEntry?.kind === 'pdf';
   /** Clé du zoom propre au morceau : chemin dans la bibliothèque, ou échantillon. */
   const zoomKey = current?.kind === 'library' ? current.path : current ? `${current.kind}:${current.path}` : '';
-  const songScale = device.songZoom[zoomKey] ?? device.fontScale;
+  const songScale = probeScale ?? songFontScale(device, zoomKey);
+  const songZoomed = zoomKey in device.songZoom;
   const songDevice = useMemo(() => ({ ...device, fontScale: songScale }), [device, songScale]);
   /** Zoom en mode scène : taille du texte d'un morceau ChordPro, recadrage d'un PDF. */
   const canZoom = stage && current?.kind !== 'note';
@@ -1382,8 +1470,13 @@ export function App() {
                 !canZoom
                   ? null
                   : isPdf
-                    ? { label: pdfLabel(pageCrop), onStep: zoomStep }
-                    : { label: textLabel(songScale), onStep: zoomStep, onReset: () => setFontScale(1) }
+                    ? { label: pdfLabel(pageCrop), onStep: zoomStep, onFit: fitToPage, fitLabel: 'Page entière' }
+                    : {
+                        label: textLabel(songScale),
+                        onStep: zoomStep,
+                        onFit: fitToPage,
+                        onReset: songZoomed ? () => setFontScale(device.fontScale) : undefined,
+                      }
               }
               onTranspose={(d) => setExtraTranspose((t) => (d === 'reset' ? 0 : t + d))}
               onPlay={(i) => playingSet && playItem(playingSet, i, 'first')}
