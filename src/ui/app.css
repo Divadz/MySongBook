@@ -499,6 +499,25 @@ body,
 .lib-new select {
   padding: 4px 6px;
 }
+/* Nouveau dossier en cours de saisie (création d'un morceau, convertisseur). */
+.folder-new {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.folder-new input {
+  flex: 1;
+  min-width: 10em;
+}
+.folder-new input[aria-invalid] {
+  border-color: #b00;
+}
+.folder-error {
+  flex-basis: 100%;
+  color: #b00;
+  font-size: 12px;
+}
 .lib-search {
   padding: 6px 8px;
   border: 1px solid #bbb;

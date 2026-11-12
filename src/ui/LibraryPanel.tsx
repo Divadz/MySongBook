@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { isConflictCopy, normalizeText, type SongEntry } from '../core/library';
+import { FolderSelect } from './FolderSelect';
 
 interface Props {
   name: string;
@@ -20,7 +21,7 @@ export function LibraryPanel({ name, entries, selected, onSelect, onCreate, onRe
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newFolder, setNewFolder] = useState('');
+  const [newFolder, setNewFolder] = useState<string | null>('');
 
   const folders = useMemo(() => [...new Set(entries.map((e) => e.folder))].sort((a, b) => a.localeCompare(b, 'fr')), [entries]);
 
@@ -56,7 +57,7 @@ export function LibraryPanel({ name, entries, selected, onSelect, onCreate, onRe
 
   const submitNew = () => {
     const title = newTitle.trim();
-    if (!title) return;
+    if (!title || newFolder === null) return;
     onCreate(newFolder, title);
     setCreating(false);
     setNewTitle('');
@@ -91,15 +92,8 @@ export function LibraryPanel({ name, entries, selected, onSelect, onCreate, onRe
               if (e.key === 'Escape') setCreating(false);
             }}
           />
-          <select value={newFolder} onChange={(e) => setNewFolder(e.target.value)}>
-            <option value="">(racine de songs/)</option>
-            {folders.filter(Boolean).map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-          <button onClick={submitNew} disabled={!newTitle.trim()}>
+          <FolderSelect folders={folders} value={newFolder} onChange={setNewFolder} />
+          <button onClick={submitNew} disabled={!newTitle.trim() || newFolder === null}>
             Créer
           </button>
         </div>

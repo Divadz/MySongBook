@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { convertChordsOverLyrics } from '../core/convert';
+import { FolderSelect } from './FolderSelect';
 
 interface Props {
   /** Dossiers de songs/ ; vide si aucune bibliothèque n'est ouverte. */
@@ -16,7 +17,7 @@ export function ConverterView({ folders, libraryOpen, onCreate, onClose }: Props
   const [title, setTitle] = useState<string | null>(null);
   const [artist, setArtist] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
-  const [folder, setFolder] = useState('');
+  const [folder, setFolder] = useState<string | null>('');
   /** Texte de sortie retouché à la main : il n'est plus régénéré automatiquement. */
   const [edited, setEdited] = useState<string | null>(null);
 
@@ -57,18 +58,15 @@ export function ConverterView({ folders, libraryOpen, onCreate, onClose }: Props
         {libraryOpen && (
           <label>
             Dossier
-            <select value={folder} onChange={(e) => setFolder(e.target.value)}>
-              <option value="">(racine de songs/)</option>
-              {folders.filter(Boolean).map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
+            <FolderSelect folders={folders} value={folder} onChange={setFolder} />
           </label>
         )}
         <span className="spacer" />
-        <button className="primary" disabled={!output.trim()} onClick={() => onCreate(folder, finalTitle, output)}>
+        <button
+          className="primary"
+          disabled={!output.trim() || (libraryOpen && folder === null)}
+          onClick={() => onCreate(folder ?? '', finalTitle, output)}
+        >
           {libraryOpen ? 'Créer le morceau' : 'Ouvrir dans l’éditeur'}
         </button>
         <button onClick={onClose}>Annuler</button>
