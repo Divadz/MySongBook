@@ -79,6 +79,10 @@ interface SampleEntry {
 }
 
 const MM_TO_PX = 96 / 25.4;
+/** Agrandissement par défaut de l'interface sur écran tactile (comme --ui-zoom dans app.css). */
+const UI_ZOOM_TOUCH = 2.9;
+const UI_SCALE_MIN = 0.5;
+const UI_SCALE_MAX = 1.3;
 /** Taille maximale proposée par « Ajuster à la page ». */
 const FIT_MAX = 2;
 
@@ -133,6 +137,32 @@ export function App() {
   const [pdfMeta, setPdfMeta] = useState<PdfMeta>({});
   const [cropping, setCropping] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Taille de l'interface sur écran tactile (barre du haut, menu), en part de
+   * la taille par défaut ; mémorisée sur l'appareil (stockage du navigateur).
+   */
+  const touchScreen = useMemo(() => window.matchMedia?.('(pointer: coarse)').matches ?? false, []);
+  const [uiScale, setUiScaleState] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem('mysongbook.uiScale'));
+      return v >= UI_SCALE_MIN && v <= UI_SCALE_MAX ? v : 1;
+    } catch {
+      return 1;
+    }
+  });
+  const setUiScale = (v: number) => {
+    const next = Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, Math.round(v * 10) / 10));
+    setUiScaleState(next);
+    try {
+      localStorage.setItem('mysongbook.uiScale', String(next));
+    } catch {
+      /* stockage indisponible : réglage pour cette session */
+    }
+  };
+  useEffect(() => {
+    if (touchScreen) document.documentElement.style.setProperty('--ui-zoom', String(UI_ZOOM_TOUCH * uiScale));
+  }, [touchScreen, uiScale]);
   /** Zoom au clavier en mode scène (défini plus bas, avec le zoom). */
   const stageZoomKeyRef = useRef<(dir: 1 | -1 | 0) => void>(() => {});
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -1335,6 +1365,17 @@ export function App() {
         <button className="sidebar-button" onClick={() => setShowSettings(true)}>
           Réglages d’affichage…
         </button>
+        {touchScreen && (
+          <div className="sidebar-ui-scale">
+            <span>Interface {Math.round(uiScale * 100)} %</span>
+            <button onClick={() => setUiScale(uiScale - 0.1)} disabled={uiScale <= UI_SCALE_MIN} aria-label="Réduire l'interface">
+              −
+            </button>
+            <button onClick={() => setUiScale(uiScale + 0.1)} disabled={uiScale >= UI_SCALE_MAX} aria-label="Agrandir l'interface">
+              +
+            </button>
+          </div>
+        )}
       </aside>
 
       <main className="main">

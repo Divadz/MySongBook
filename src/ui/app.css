@@ -1129,6 +1129,22 @@ body,
     zoom: 1.45;
   }
 }
+/* Réglage de la taille de l'interface (écran tactile), en bas du menu. */
+.sidebar-ui-scale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+.sidebar-ui-scale span {
+  flex: 1;
+}
+.sidebar-ui-scale button {
+  min-width: 32px;
+  padding: 2px 8px;
+  font-size: 15px;
+}
 
 /* --- Menu ☰ du mode scène : barres affichées par-dessus la page ------------- */
 .stage-burger {
