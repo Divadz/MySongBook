@@ -1142,6 +1142,10 @@ body,
 .editor-pane.touch .editor {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  /* Polices du PC absentes d'Android (repli très fin) : Roboto Mono embarquée, noir pur, 2 px de plus. */
+  font-family: var(--msb-mono, 'Roboto Mono', monospace);
+  font-size: 16px;
+  color: #000;
 }
 /* Aperçu masqué pendant la saisie, mais toujours rendu (pagination à jour). */
 .workspace .viewport.collapsed {
@@ -1163,7 +1167,7 @@ body,
   min-width: 36px;
   padding: 4px 8px;
   font-size: 15px;
-  font-family: 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
+  font-family: var(--msb-mono, 'Roboto Mono', monospace);
   background: #fff;
   border: 1px solid #000;
   border-radius: 4px;
