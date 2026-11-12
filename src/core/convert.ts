@@ -69,10 +69,29 @@ function bracket(t: string): string {
   return isChord(t) ? `[${t}]` : `[*${t}]`;
 }
 
-/** Place les accords dans les paroles, à leur colonne. */
+/**
+ * Place les accords dans les paroles, à leur colonne.
+ *
+ * Paroles en retrait : un accord placé au moins deux colonnes avant le début
+ * du texte se joue avant les paroles. Il est écrit en tête, suivi d'une
+ * espace (« [D] Don't wanna… »), au lieu d'être accroché au premier mot ; le
+ * retrait lui-même n'est pas gardé.
+ */
 export function mergeChordsIntoLyrics(chordLine: string, lyricLine: string): string {
-  const tokens = tokensWithColumns(chordLine.replace(/\t/g, '    ')).filter((t) => !/^\|+$/.test(t.text));
-  let lyrics = lyricLine.replace(/\t/g, '    ');
+  const all = tokensWithColumns(chordLine.replace(/\t/g, '    ')).filter((t) => !/^\|+$/.test(t.text));
+  const raw = lyricLine.replace(/\t/g, '    ');
+  const lead = raw.search(/\S/);
+  if (lead > 0) {
+    const before = all.filter((t) => t.col <= lead - 2);
+    const rest = all.filter((t) => t.col > lead - 2).map((t) => ({ ...t, col: Math.max(0, t.col - lead) }));
+    const body = placeChords(rest, raw.slice(lead));
+    return before.length ? `${before.map((t) => bracket(t.text)).join(' ')} ${body}` : body;
+  }
+  return placeChords(all, raw);
+}
+
+function placeChords(tokens: Token[], text: string): string {
+  let lyrics = text;
   const lastCol = tokens.length ? tokens[tokens.length - 1].col : 0;
   if (lyrics.length < lastCol) lyrics = lyrics.padEnd(lastCol, ' ');
   // De droite à gauche pour ne pas décaler les colonnes restantes.
