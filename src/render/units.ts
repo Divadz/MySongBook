@@ -145,6 +145,8 @@ export function fillColumns(units: Unit[], heights: number[], columnHeight: numb
     // Un en-tête ne reste jamais seul en bas de colonne.
     if (unit.kind === 'header' && i + 1 < units.length) h += heights[i + 1] ?? 0;
     if (used > 0 && used + h > columnHeight) flush();
+    // Ligne blanche en haut de colonne : inutile, elle est sautée.
+    if (col.length === 0 && unit.kind === 'line' && unit.line.kind === 'blank') continue;
     col.push(i);
     used += heights[i] ?? 0;
   }

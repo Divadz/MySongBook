@@ -20,7 +20,9 @@ export interface ChordLyric {
 export type SongLine =
   | { kind: 'pairs'; items: ChordLyric[]; chordsOnly: boolean; source?: number }
   | { kind: 'literal'; text: string; source?: number }
-  | { kind: 'comment'; text: string; style: CommentStyle; source?: number };
+  | { kind: 'comment'; text: string; style: CommentStyle; source?: number }
+  /** Ligne vide du fichier, à l'intérieur d'une section : une ligne blanche à l'affichage. */
+  | { kind: 'blank'; source?: number };
 
 export type CommentStyle = 'plain' | 'italic' | 'box' | 'highlight';
 
@@ -280,6 +282,8 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
   const state: { lastChorus: SectionBlock | null } = { lastChorus: null };
 
   const closeSection = () => {
+    // Lignes vides en fin de section : simple mise en forme du fichier.
+    while (section && section.lines[section.lines.length - 1]?.kind === 'blank') section.lines.pop();
     if (section && section.lines.length > 0) {
       blocks.push(section);
       if (section.type === 'chorus') state.lastChorus = section;
@@ -307,6 +311,13 @@ export function parseSong(source: string, extraTranspose = 0): SongModel {
         .map((it) => (it instanceof Literal ? it.string : it instanceof ChordLyricsPair ? `${it.chords}${it.lyrics}` : ''))
         .join('');
       abc.abc += (abc.abc ? '\n' : '') + text;
+      continue;
+    }
+
+    // Ligne vide : ligne blanche dans une section commencée (rien au début d'une section ni hors section).
+    const blank = items.every((it) => it instanceof ChordLyricsPair && !it.chords?.trim() && !it.annotation?.trim() && !it.lyrics?.trim());
+    if (blank) {
+      if (section && section.lines.length > 0) section.lines.push({ kind: 'blank', source });
       continue;
     }
 

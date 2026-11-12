@@ -213,6 +213,10 @@ export function UnitView({ unit, settings, device, columnWidthMm, transpose, onC
           </pre>
         );
       }
+      if (line.kind === 'blank') {
+        // Hauteur d'une ligne de paroles de la section.
+        return <div className="u-blank" style={{ ...css(st, scale), lineHeight: settings.lineHeight, height: `${settings.lineHeight}em` }} />;
+      }
       if (line.kind === 'comment') {
         return (
           <div className={`u-comment ${line.style}`} style={{ ...css(S.comment, scale), ...spacing }}>
