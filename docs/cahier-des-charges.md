@@ -33,7 +33,7 @@ Trois principes :
 | Import | Export des bibliothèques SongbookPro existantes (environ 100 morceaux, deux appareils) vers ChordPro pour amorcer. Convertisseur par copier-coller, sur PC et tablette. Pas de recherche en ligne intégrée |
 | Impression | Depuis le PC : une chanson, un set complet, ou la liste simple des morceaux d'un set |
 | Rendu | Entièrement paramétrable dans l'application, sur la tablette (taille de police, styles de sections, colonnes, position des accords, marges) |
-| Technique | TypeScript, une base de code ; PWA sur PC (accès au dossier par l'API File System Access de Chrome/Edge) ; Capacitor pour l'APK Android |
+| Technique | TypeScript, une base de code ; PWA sur PC (accès au dossier par l'API File System Access de Chrome/Edge), publiée le 2026-11-12 sur GitHub Pages (https://divadz.github.io/MySongBook/, mise à jour à chaque push par `.github/workflows/pages.yml`, utilisable hors ligne grâce à un service worker qui met tout le code en cache, installable comme application) ; Capacitor pour l'APK Android |
 | Projet | `C:\Dev\_PERSO\MySongBook`, dépôt `https://github.com/Divadz/MySongBook.git` |
 | Outil de synchro (phase 1) | Autosync for Google Drive (gratuit) ; pas d'outil payant. Test reporté à la disponibilité des tablettes |
 | Sauvegarde | Google Drive (historique de versions, corbeille) suffit ; rien dans l'application |

@@ -166,7 +166,7 @@ export function App() {
 
   // --- Démarrage ------------------------------------------------------------
   useEffect(() => {
-    fetch('/samples/index.json')
+    fetch(`${import.meta.env.BASE_URL}samples/index.json`)
       .then((r) => r.json())
       .then((list: SampleEntry[]) => {
         setSamples(list);
@@ -336,7 +336,11 @@ export function App() {
     const load = async (): Promise<string> => {
       if (current.kind === 'note') return noteAsChordPro(current.text);
       if (current.kind === 'scratch') return current.text;
-      if (current.kind === 'sample') return (await fetch(`/samples/${current.path}`)).text();
+      if (current.kind === 'sample') {
+        const text = await (await fetch(`${import.meta.env.BASE_URL}samples/${current.path}`)).text();
+        // Images des échantillons : « /samples/… » est relatif au site, qui peut être dans un sous-dossier.
+        return text.split('{image: /samples/').join(`{image: ${import.meta.env.BASE_URL}samples/`);
+      }
       if (!library) return '';
       if (/\.pdf$/i.test(current.path)) {
         const metaPath = pdfMetaPath(current.path);

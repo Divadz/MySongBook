@@ -1,0 +1,14 @@
+{
+  "name": "MySongBook",
+  "short_name": "MySongBook",
+  "description": "Partitions ChordPro et setlists",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#222222",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

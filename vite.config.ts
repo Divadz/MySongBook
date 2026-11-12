@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 /**
  * Développement seulement : expose un dossier de bibliothèque en HTTP pour
@@ -76,7 +77,77 @@ function devLibrary(): Plugin {
   };
 }
 
+/**
+ * Mode hors ligne du site (PC) : service worker qui met en cache, dès la
+ * première visite, tous les fichiers de l'application (code, polices, pdf.js,
+ * échantillons). Son nom de cache dépend du contenu : une nouvelle version
+ * remplace l'ancienne au chargement suivant. Les morceaux, eux, sont lus dans
+ * le dossier local et ne passent jamais par le réseau.
+ */
+function offline(): Plugin {
+  let publicDir = 'public';
+  return {
+    name: 'offline',
+    apply: 'build',
+    configResolved(config) {
+      publicDir = config.publicDir;
+    },
+    generateBundle(_options, bundle) {
+      const files: string[] = [];
+      const hash = crypto.createHash('sha256');
+      for (const [name, item] of Object.entries(bundle)) {
+        files.push(name);
+        hash.update(name);
+        hash.update(item.type === 'chunk' ? item.code : item.source);
+      }
+      const walk = (dir: string, prefix: string) => {
+        if (!fs.existsSync(dir)) return;
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, e.name);
+          if (e.isDirectory()) walk(full, `${prefix}${e.name}/`);
+          else {
+            files.push(`${prefix}${e.name}`);
+            hash.update(`${prefix}${e.name}`);
+            hash.update(fs.readFileSync(full));
+          }
+        }
+      };
+      walk(publicDir, '');
+      const list = files.filter((f) => f !== 'sw.js').sort();
+      const cache = `msb-${hash.digest('hex').slice(0, 12)}`;
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sw.js',
+        source: `// Généré à la construction (vite.config.ts, offline()).
+const CACHE = ${JSON.stringify(cache)};
+const FILES = ${JSON.stringify(['./', ...list.map((f) => `./${f}`)])};
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('msb-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
+});
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  // Page : la version en cache (hors ligne et rapide) ; la suivante s'installe en arrière-plan.
+  const key = req.mode === 'navigate' ? new URL('./', self.registration.scope).href : req;
+  e.respondWith(caches.match(key, { ignoreSearch: true }).then((hit) => hit || fetch(req)));
+});
+`,
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), devLibrary()],
+  // Site GitHub Pages : servi sous /MySongBook/ (MSB_BASE fixé par le workflow) ; APK et local : racine.
+  base: process.env.MSB_BASE ?? '/',
+  plugins: [react(), devLibrary(), offline()],
   server: { port: 5174 },
 });
