@@ -1129,6 +1129,53 @@ body,
     zoom: 1.45;
   }
 }
+/* --- Éditeur sur tablette : pleine largeur, texte ou aperçu ------------------ */
+/* Mode scène, menu ouvert : la barre du haut est posée sur la page ; en
+   édition, l'éditeur commence dessous pour ne rien cacher. */
+.app.stage.menu.editing .workspace {
+  padding-top: var(--toolbar-h, 0px);
+}
+.editor-pane.touch {
+  flex: 1 1 auto;
+  width: 100%;
+}
+.editor-pane.touch .editor {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* Aperçu masqué pendant la saisie, mais toujours rendu (pagination à jour). */
+.workspace .viewport.collapsed {
+  flex: 0 0 0;
+  min-width: 0;
+  width: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+.edit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #000;
+  background: #fff;
+}
+.edit-bar button {
+  min-width: 36px;
+  padding: 4px 8px;
+  font-size: 15px;
+  font-family: 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 4px;
+  color: #000;
+}
+.edit-bar-chord {
+  font-weight: 700;
+}
+.edit-bar-sep {
+  width: 8px;
+}
+
 /* Réglage de la taille de l'interface (écran tactile), en bas du menu. */
 .sidebar-ui-scale {
   display: flex;

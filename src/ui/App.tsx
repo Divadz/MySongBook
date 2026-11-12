@@ -71,6 +71,7 @@ import {
   zoomFactorFor,
 } from '../core/deviceSettings';
 import type { DirectiveHelp } from './directives';
+import { EditBar } from './EditBar';
 import './app.css';
 
 interface SampleEntry {
@@ -169,6 +170,11 @@ export function App() {
 
   // --- Édition --------------------------------------------------------------
   const [mode, setMode] = useState<'read' | 'edit'>('read');
+  /** Tablette : l'éditeur montre le texte ou l'aperçu, en pleine largeur (pas d'écran partagé). */
+  const [editTab, setEditTab] = useState<'text' | 'preview'>('text');
+  useEffect(() => {
+    if (mode === 'edit') setEditTab('text');
+  }, [mode]);
   const [editorWidth, setEditorWidth] = useState(50); // en % de la zone de travail
   const lastGood = useRef<SongModel | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -1249,7 +1255,7 @@ export function App() {
 
   return (
     <div
-      className={['app', stage && 'stage', stage && menu && 'menu'].filter(Boolean).join(' ')}
+      className={['app', stage && 'stage', stage && menu && 'menu', mode === 'edit' && 'editing'].filter(Boolean).join(' ')}
       style={{ '--toolbar-h': `${toolbarHeight}px` } as React.CSSProperties}
     >
       {stage && (
@@ -1403,6 +1409,11 @@ export function App() {
               {current?.kind === 'library' ? 'Enregistrer' : 'Télécharger'}
             </button>
           )}
+          {mode === 'edit' && touchScreen && (
+            <button className="toggle" onClick={() => setEditTab((t) => (t === 'text' ? 'preview' : 'text'))}>
+              {editTab === 'text' ? 'Aperçu' : 'Texte'}
+            </button>
+          )}
           {mode === 'edit' && (
             <button className={showHelp ? 'toggle on' : 'toggle'} onClick={() => setShowHelp((h) => !h)} title="Pense-bête des directives (F1)">
               Directives
@@ -1467,14 +1478,18 @@ export function App() {
           />
         )}
         <div className="workspace" ref={workspaceRef} hidden={showConverter}>
-          {mode === 'edit' && (
-            <div className="editor-pane" style={{ width: `${editorWidth}%` }}>
+          {mode === 'edit' && !(touchScreen && editTab === 'preview') && (
+            <div className={touchScreen ? 'editor-pane touch' : 'editor-pane'} style={touchScreen ? undefined : { width: `${editorWidth}%` }}>
+              {touchScreen && <EditBar source={source} editor={editorRef} />}
               <div className="editor-row">
                 <textarea
                   ref={editorRef}
                   className="editor"
                   value={source}
                   spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  autoComplete="off"
                   onChange={(e) => setSource(e.target.value)}
                 />
                 {showHelp && <CheatSheet onInsert={insertDirective} onClose={() => setShowHelp(false)} />}
@@ -1482,9 +1497,9 @@ export function App() {
               {parsed.error && <div className="editor-error">Syntaxe : {parsed.error}</div>}
             </div>
           )}
-          {mode === 'edit' && <div className="splitter" onMouseDown={startDrag} />}
+          {mode === 'edit' && !touchScreen && <div className="splitter" onMouseDown={startDrag} />}
           <div
-            className="viewport"
+            className={mode === 'edit' && touchScreen && editTab === 'text' ? 'viewport collapsed' : 'viewport'}
             ref={viewportRef}
             onClick={onViewportClick}
             onPointerDown={onPointerDown}

@@ -253,7 +253,7 @@ Priorités : **P1** = indispensable au premier usage sur scène, **P2** = néces
 | Id | Priorité | Exigence |
 |:---|:--------:|:---------|
 | EDI-01 | P1 | Éditeur texte du `.cho` sur PC, avec aperçu en direct, sauvegarde explicite et Ctrl-S |
-| EDI-02 | P1 | Même éditeur simplifié sur tablette (plein écran, police lisible, clavier virtuel) |
+| EDI-02 | P1 | Même éditeur simplifié sur tablette (plein écran, police lisible, clavier virtuel). Fait le 2026-11-12 (écran tactile) : texte et aperçu en alternance en pleine largeur (bouton « Aperçu » / « Texte »), retour à la ligne des lignes longues, correction et majuscules automatiques du clavier coupées, barre d'insertion qui garde le clavier ouvert (annuler, rétablir, `[ ]`, `{ }`, `{c:}`, accords déjà utilisés dans le morceau), éditeur placé sous la barre du haut |
 | EDI-03 | P1 | Convertisseur « accords sur paroles → ChordPro » : coller un texte, obtenir un `.cho` propre (détection des lignes d'accords, des titres de section, des métadonnées en tête), sur PC et tablette. Fait le 2026-10-21 |
 | EDI-04 | P2 | Aide à la saisie : insertion d'accord, de directive, de section ; coloration syntaxique légère |
 | EDI-05 | P2 | Édition des métadonnées par formulaire (titre, artiste, tonalité, tempo, tags) écrite dans les directives |
