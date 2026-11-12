@@ -133,6 +133,8 @@ export function App() {
   const [pdfMeta, setPdfMeta] = useState<PdfMeta>({});
   const [cropping, setCropping] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  /** Zoom au clavier en mode scène (défini plus bas, avec le zoom). */
+  const stageZoomKeyRef = useRef<(dir: 1 | -1 | 0) => void>(() => {});
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   // --- Édition --------------------------------------------------------------
@@ -651,6 +653,12 @@ export function App() {
         setShowHelp((h) => !h);
         return;
       }
+      // Mode scène : Ctrl + / Ctrl − / Ctrl 0 zooment le morceau, pas Chrome.
+      if (stageRef.current && (e.ctrlKey || e.metaKey) && ['+', '=', '-', '_', '0'].includes(e.key)) {
+        e.preventDefault();
+        stageZoomKeyRef.current(e.key === '0' ? 0 : e.key === '-' || e.key === '_' ? -1 : 1);
+        return;
+      }
       const target = e.target as HTMLElement | null;
       if (target && /^(TEXTAREA|INPUT|SELECT)$/.test(target.tagName)) return;
       if (e.key === 'Escape' && stageRef.current) {
@@ -1161,11 +1169,33 @@ export function App() {
       showZoom(textLabel(value), 1200);
     }
   };
-  // PC : Ctrl + molette (ou pincement du pavé tactile) en mode scène.
-  const onWheel = (e: React.WheelEvent) => {
-    if (!canZoom || !e.ctrlKey) return;
+  /**
+   * PC, mode scène : Ctrl + molette (ou pincement du pavé tactile) zoome le
+   * morceau, et jamais Chrome (l'interface garderait sa taille). Écouteur
+   * natif non passif : React ne permet pas d'annuler la molette.
+   */
+  const onWheelRef = useRef<(e: WheelEvent) => void>(() => {});
+  onWheelRef.current = (e: WheelEvent) => {
+    if (!e.ctrlKey || !stage) return;
+    e.preventDefault();
+    if (!canZoom) return;
     const frame = isPdf ? pdfFrame() : null;
     zoomStep(e.deltaY < 0 ? 1 : -1, frame ? fraction({ x: e.clientX, y: e.clientY }, frame) : undefined);
+  };
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => onWheelRef.current(e);
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, []);
+  /** Ctrl + / Ctrl − : un cran ; Ctrl 0 : taille normale (page entière pour un PDF). */
+  stageZoomKeyRef.current = (dir: 1 | -1 | 0) => {
+    if (!canZoom) return;
+    if (dir !== 0) zoomStep(dir);
+    else if (isPdf) fitToPage();
+    else {
+      setFontScale(device.fontScale);
+      showZoom(textLabel(device.fontScale), 1200);
+    }
   };
 
   // Une page tournée referme les commandes ; un morceau choisi referme le menu (sauf pour l'éditer).
@@ -1420,7 +1450,6 @@ export function App() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            onWheel={onWheel}
           >
             {isPdf ? (
               library &&
